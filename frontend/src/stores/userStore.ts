@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { TargetUser } from '../types/api'
+import type { TargetUser } from '../types'
 
 interface UserState {
   users: TargetUser[]

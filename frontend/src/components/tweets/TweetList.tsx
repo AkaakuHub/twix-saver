@@ -160,11 +160,25 @@ export const TweetList = () => {
                   },
                   media: tweet.downloaded_media?.map((media: Record<string, unknown>) => ({
                     type: 'photo' as const,
-                    url: media.url || '',
-                    preview_image_url: media.url || '',
+                    url: (media.url as string) || '',
+                    preview_image_url: (media.url as string) || '',
                   })),
-                  extracted_articles: tweet.extracted_articles as
-                    | Record<string, unknown>[]
+                  extracted_articles: tweet.extracted_articles?.map(
+                    (article: Record<string, unknown>) => ({
+                      title: (article.title as string) || '',
+                      url: (article.url as string) || '',
+                      description: (article.description as string) || undefined,
+                      image: (article.image as string) || undefined,
+                      domain: (article.domain as string) || undefined,
+                    })
+                  ) as
+                    | Array<{
+                        title: string
+                        url: string
+                        description?: string
+                        image?: string
+                        domain?: string
+                      }>
                     | undefined,
                 }}
                 expanded={expandedTweets.has(tweet.id_str)}

@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
 import { useWebSocketStore } from '../../stores/websocketStore'
+import { WebSocketMessage } from '../../types'
 import { clsx } from 'clsx'
 
 interface ActivityItem {
@@ -60,7 +61,7 @@ export const ActivityFeed = () => {
 
     const handleMessage = (event: MessageEvent) => {
       try {
-        const message = JSON.parse(event.data)
+        const message: WebSocketMessage = JSON.parse(event.data)
 
         if (
           message.type === 'log' ||
@@ -72,7 +73,7 @@ export const ActivityFeed = () => {
             id: `${Date.now()}-${Math.random()}`,
             type: getActivityType(message),
             message: formatActivityMessage(message),
-            timestamp: message.data.timestamp || new Date().toISOString(),
+            timestamp: (message.data.timestamp as string) || new Date().toISOString(),
             details: message.data,
           }
 
@@ -90,16 +91,19 @@ export const ActivityFeed = () => {
   }, [ws, connected])
 
   // アクティビティタイプの判定
-  const getActivityType = (message: Record<string, unknown>): ActivityItem['type'] => {
+  const getActivityType = (message: WebSocketMessage): ActivityItem['type'] => {
     switch (message.type) {
       case 'job_update':
-        if (message.data?.status === 'completed') return 'job_completed'
-        if (message.data?.status === 'failed') return 'job_failed'
+        if ((message.data as Record<string, unknown>)?.status === 'completed')
+          return 'job_completed'
+        if ((message.data as Record<string, unknown>)?.status === 'failed') return 'job_failed'
         return 'system_info'
       case 'log':
-        if (message.data?.level === 'error') return 'job_failed'
-        if (message.data?.message?.includes('ユーザー')) return 'user_added'
-        if (message.data?.message?.includes('ツイート')) return 'tweet_collected'
+        if ((message.data as Record<string, unknown>)?.level === 'error') return 'job_failed'
+        if ((message.data as Record<string, unknown>)?.message?.toString().includes('ユーザー'))
+          return 'user_added'
+        if ((message.data as Record<string, unknown>)?.message?.toString().includes('ツイート'))
+          return 'tweet_collected'
         return 'system_info'
       default:
         return 'system_info'
@@ -107,12 +111,12 @@ export const ActivityFeed = () => {
   }
 
   // アクティビティメッセージのフォーマット
-  const formatActivityMessage = (message: Record<string, unknown>): string => {
+  const formatActivityMessage = (message: WebSocketMessage): string => {
     switch (message.type) {
       case 'job_update':
-        return `ジョブ「${message.data?.job_id || 'unknown'}」が${message.data?.status || 'unknown'}になりました`
+        return `ジョブ「${(message.data as Record<string, unknown>)?.job_id || 'unknown'}」が${(message.data as Record<string, unknown>)?.status || 'unknown'}になりました`
       case 'log':
-        return message.data?.message || 'ログメッセージ'
+        return (message.data as Record<string, unknown>)?.message?.toString() || 'ログメッセージ'
       case 'system_stats':
         return 'システム統計が更新されました'
       default:

@@ -9,7 +9,8 @@ import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
 import { PlusIcon } from '@heroicons/react/24/outline'
-import type { TargetUserResponse } from '../../types/api'
+import type { TargetUserResponse, TargetUserCreate, TargetUserUpdate } from '../../types/api'
+import type { UserFormData } from './UserForm'
 
 export const UserList = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -27,13 +28,13 @@ export const UserList = () => {
   }
 
   const handleCreateUser = (userData: Record<string, unknown>) => {
-    createUser(userData)
+    createUser(userData as unknown as TargetUserCreate)
     setIsCreateModalOpen(false)
   }
 
   const handleUpdateUser = (userData: Record<string, unknown>) => {
     if (editingUser) {
-      updateUser({ id: editingUser.username, data: userData })
+      updateUser({ id: editingUser.username, data: userData as unknown as TargetUserUpdate })
       setEditingUser(null)
     }
   }
@@ -69,13 +70,15 @@ export const UserList = () => {
     let aValue: unknown = a[sortBy as keyof TargetUserResponse]
     let bValue: unknown = b[sortBy as keyof TargetUserResponse]
 
-    if (typeof aValue === 'string') {
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
       aValue = aValue.toLowerCase()
       bValue = bValue.toLowerCase()
     }
 
-    if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1
-    if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
+    if ((aValue as string | number) < (bValue as string | number))
+      return sortOrder === 'asc' ? -1 : 1
+    if ((aValue as string | number) > (bValue as string | number))
+      return sortOrder === 'asc' ? 1 : -1
     return 0
   })
 
@@ -132,7 +135,10 @@ export const UserList = () => {
         title="新規ユーザー追加"
         size="lg"
       >
-        <UserForm onSubmit={handleCreateUser} onCancel={() => setIsCreateModalOpen(false)} />
+        <UserForm
+          onSubmit={handleCreateUser as unknown as (data: UserFormData) => void}
+          onCancel={() => setIsCreateModalOpen(false)}
+        />
       </Modal>
 
       {/* 編集モーダル */}
@@ -144,7 +150,7 @@ export const UserList = () => {
       >
         <UserForm
           user={editingUser}
-          onSubmit={handleUpdateUser}
+          onSubmit={handleUpdateUser as unknown as (data: UserFormData) => void}
           onCancel={() => setEditingUser(null)}
         />
       </Modal>

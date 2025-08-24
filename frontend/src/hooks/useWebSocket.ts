@@ -44,7 +44,12 @@ export const useWebSocket = (url?: string) => {
 
           if (Array.isArray(message.data.logs)) {
             message.data.logs.forEach((log: Record<string, unknown>) => {
-              addJobLog((message.data.id as string) || (message.data.job_id as string), log)
+              addJobLog((message.data.id as string) || (message.data.job_id as string), {
+                id: (log.id as string) || '',
+                timestamp: (log.timestamp as string) || new Date().toISOString(),
+                level: (log.level as 'success' | 'error' | 'warning' | 'info') || 'info',
+                message: (log.message as string) || '',
+              })
             })
           }
           break

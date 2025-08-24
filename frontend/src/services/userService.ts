@@ -10,7 +10,7 @@ import type {
   TargetUserUpdate,
   UserStatistics,
   SuccessResponse,
-} from '@/types/api'
+} from '@/types'
 
 export class UserService {
   // ユーザー一覧取得

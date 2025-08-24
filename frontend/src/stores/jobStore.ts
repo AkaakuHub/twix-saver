@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { ScrapingJob } from '../types/api'
+import type { ScrapingJob } from '../types'
 
 interface JobState {
   jobs: ScrapingJob[]

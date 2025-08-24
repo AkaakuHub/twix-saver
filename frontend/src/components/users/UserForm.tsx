@@ -10,7 +10,7 @@ interface UserFormProps {
   onCancel: () => void
 }
 
-interface UserFormData {
+export interface UserFormData {
   username: string
   priority: number
   active: boolean

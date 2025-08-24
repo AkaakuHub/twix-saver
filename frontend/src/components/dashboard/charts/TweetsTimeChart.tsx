@@ -62,7 +62,7 @@ export const TweetsTimeChart = () => {
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow">
           <p className="text-sm font-medium">
-            {format(new Date(label), 'MM月dd日', { locale: ja })}
+            {format(new Date(label || ''), 'MM月dd日', { locale: ja })}
           </p>
           <p className="text-sm text-blue-600">収集数: {payload[0].value}件</p>
         </div>

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { Tweet } from '../types/api'
+import type { Tweet } from '../types'
 
 interface TweetState {
   tweets: Tweet[]

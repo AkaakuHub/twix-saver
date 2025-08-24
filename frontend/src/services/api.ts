@@ -4,7 +4,7 @@
  */
 
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios'
-import { ApiError } from '../types/api'
+import { ApiError } from '../types'
 
 const API_BASE_URL =
   (import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE_URL ||

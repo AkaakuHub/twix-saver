@@ -32,7 +32,7 @@ def python_to_typescript_type(py_type) -> str:
     elif py_type is datetime:
         return "string"  # ISO string として扱う
     elif hasattr(py_type, '__name__') and py_type.__name__ == 'Any':
-        return "any"
+        return "unknown"
     
     # Generic types
     origin = get_origin(py_type)
@@ -42,14 +42,14 @@ def python_to_typescript_type(py_type) -> str:
         if args:
             inner_type = python_to_typescript_type(args[0])
             return f"{inner_type}[]"
-        return "any[]"
+        return "unknown[]"
     
     if origin is dict:
         if len(args) == 2:
             key_type = python_to_typescript_type(args[0])
             value_type = python_to_typescript_type(args[1])
             return f"Record<{key_type}, {value_type}>"
-        return "Record<string, any>"
+        return "Record<string, unknown>"
     
     if origin is Union:
         # Optional型の処理
@@ -64,7 +64,7 @@ def python_to_typescript_type(py_type) -> str:
     if hasattr(py_type, '__name__'):
         return py_type.__name__
     
-    return "any"
+    return "unknown"
 
 def generate_interface(model_class) -> str:
     """Pydanticモデルクラスから TypeScript interface を生成"""
@@ -76,8 +76,13 @@ def generate_interface(model_class) -> str:
     else:
         annotations = {}
     
+    # PaginatedResponseの特別処理
+    generic_params = ""
+    if interface_name == "PaginatedResponse":
+        generic_params = "<T = unknown>"
+    
     # インターフェース開始
-    lines = [f"export interface {interface_name} {{"]
+    lines = [f"export interface {interface_name}{generic_params} {{"]
     
     for field_name, field_type in annotations.items():
         # Optionalフィールドかどうかチェック
@@ -88,10 +93,15 @@ def generate_interface(model_class) -> str:
         if origin is Union and len(args) == 2 and type(None) in args:
             is_optional = True
         
-        ts_type = python_to_typescript_type(field_type)
+        # PaginatedResponseのitemsフィールドの特別処理
+        if interface_name == "PaginatedResponse" and field_name == "items":
+            ts_type = "T[]"
+        else:
+            ts_type = python_to_typescript_type(field_type)
+        
         optional_marker = "?" if is_optional else ""
         
-        lines.append(f"  {field_name}{optional_marker}: {ts_type};")
+        lines.append(f"  {field_name}{optional_marker}: {ts_type}")
     
     lines.append("}")
     lines.append("")
@@ -130,7 +140,7 @@ def main():
         # ファイルヘッダー
         output_lines.append("/**")
         output_lines.append(" * 自動生成されたAPI型定義（簡易版）")
-        output_lines.append(f" * 生成日時: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        output_lines.append(" * 注意: このファイルは自動生成されます。直接編集しないでください。")
         output_lines.append(" */")
         output_lines.append("")
         
@@ -154,14 +164,24 @@ def main():
                 print(f"Pydanticモデル発見: {name}")
                 output_lines.append(generate_interface(obj))
         
-        # ファイルに出力
-        output_file = PROJECT_ROOT.parent / "frontend" / "src" / "types" / "api.generated.ts"
+        # ファイルに出力（api.tsとapi.generated.tsの両方）
+        output_file = PROJECT_ROOT.parent / "frontend" / "src" / "types" / "api.ts"
+        backup_file = PROJECT_ROOT.parent / "frontend" / "src" / "types" / "api.generated.ts"
+        
+        # ディレクトリ作成
         output_file.parent.mkdir(parents=True, exist_ok=True)
         
+        # 両方のファイルに書き込み
+        content = '\n'.join(output_lines)
+        
         with open(output_file, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(output_lines))
+            f.write(content)
+        
+        with open(backup_file, 'w', encoding='utf-8') as f:
+            f.write(content)
         
         print(f"✅ 型定義を生成しました: {output_file}")
+        print(f"✅ バックアップを作成しました: {backup_file}")
         print(f"ファイルサイズ: {output_file.stat().st_size} bytes")
         
     except Exception as e:

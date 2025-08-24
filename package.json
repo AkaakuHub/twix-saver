@@ -9,10 +9,10 @@
   "scripts": {
     "dev:frontend": "cd frontend && pnpm run dev",
     "dev:backend": "cd backend && source venv/bin/activate && uvicorn src.web.app:app --reload --host 0.0.0.0 --port 8000",
-    "build:frontend": "cd frontend && pnpm run build",
+    "build:frontend": "pnpm run generate-types && cd frontend && pnpm run build",
     "install:frontend": "cd frontend && pnpm install",
     "install:backend": "cd backend && pip install -r requirements.txt",
-    "generate-types": "cd backend && python3 scripts/generate-types.py",
+    "generate-types": "cd backend && ./venv/bin/python scripts/simple-generate.py",
     "check-types-sync": "cd backend && python3 scripts/check-type-sync.py",
     "setup": "pnpm run install:frontend && pnpm run install:backend && pnpm run generate-types",
     "lint:frontend": "cd frontend && pnpm run lint",
