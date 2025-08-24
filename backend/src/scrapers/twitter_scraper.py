@@ -347,36 +347,44 @@ class ScrapingSession:
         """スクレイピングセッションを実行"""
         results = {}
         
-        if not settings.has_accounts:
+        # DB連携: 利用可能なアカウントを取得
+        from src.services.account_service import twitter_account_service
+        available_accounts = twitter_account_service.get_available_accounts()
+        
+        if not available_accounts:
             self.logger.error("利用可能なTwitterアカウントがありません")
             return results
         
-        # アカウントプールからランダム選択
-        account = random.choice(settings.twitter_accounts)
+        self.logger.info(f"利用可能なアカウント: {len(available_accounts)}件")
         
-        async with TwitterScraper(account) as scraper:
-            # ログイン
-            if not await scraper.login():
-                self.logger.error("ログインに失敗しました")
-                return results
-            
-            # 各ターゲットユーザーをスクレイピング
-            for username in target_users:
-                try:
-                    tweets = await scraper.scrape_user_timeline(username)
-                    results[username] = tweets
-                    
-                    # データ保存
-                    if tweets:
-                        await scraper.save_to_jsonl(f"tweets_{username}_{int(time.time())}.jsonl")
-                    
-                    # ユーザー間での遅延
-                    if len(target_users) > 1:
-                        await asyncio.sleep(random.uniform(30, 60))
+        # アカウントプールからランダム選択  
+        self.logger.info(f"アカウント型: {type(available_accounts)}, 内容: {available_accounts}")
+        account = random.choice(available_accounts)
+        self.logger.info(f"選択されたアカウント: @{account.username} (型: {type(account)})")
+        
+        try:
+            async with TwitterScraper(account) as scraper:
+                # ログイン
+                self.logger.info(f"アカウント @{account.username} でログイン試行中...")
+                if not await scraper.login():
+                    self.logger.error(f"アカウント @{account.username} のログインに失敗しました")
+                    return results
                 
-                except Exception as e:
-                    self.logger.error(f"ユーザー {username} のスクレイピングエラー: {e}")
-                    results[username] = []
+                self.logger.info(f"アカウント @{account.username} のログインに成功しました")
+                
+                # 各ターゲットユーザーをスクレイピング
+                for username in target_users:
+                    try:
+                        self.logger.info(f"ユーザー @{username} のタイムラインを取得中...")
+                        tweets = await scraper.scrape_user_timeline(username)
+                        results[username] = tweets
+                        self.logger.info(f"ユーザー @{username}: {len(tweets)}件のツイートを取得")
+                    except Exception as e:
+                        self.logger.error(f"ユーザー @{username} のスクレイピングエラー: {e}")
+                        results[username] = []
+        except Exception as e:
+            self.logger.error(f"スクレイピングセッションエラー: {e}")
+            raise
         
         session_duration = time.time() - self.start_time
         total_tweets = sum(len(tweets) for tweets in results.values())

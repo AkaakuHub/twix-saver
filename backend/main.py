@@ -41,9 +41,11 @@ async def execute_job(job: ScrapingJob) -> bool:
         
         logger.info(f"ジョブを実行開始: {job_id} (ターゲット: {', '.join(job.target_usernames)})")
         
-        # 設定チェック
-        if not settings.has_accounts:
-            error_msg = "Twitterアカウントが設定されていません。.envファイルを確認してください。"
+        # Twitterアカウント設定チェック（DB連携）
+        from src.services.account_service import twitter_account_service
+        available_accounts = twitter_account_service.get_available_accounts()
+        if not available_accounts:
+            error_msg = "利用可能なTwitterアカウントがありません。設定画面でTwitterアカウントを追加してください。"
             job_service.fail_job(job_id, error_msg)
             # WebSocket廃止済み
             return False
@@ -52,8 +54,17 @@ async def execute_job(job: ScrapingJob) -> bool:
         stats = ScrapingJobStats()
         
         # スクレイピングセッション実行
-        session = ScrapingSession()
-        results = await session.run_session(job.target_usernames)
+        logger.info(f"ジョブ {job_id}: スクレイピングセッションを開始 (対象: {', '.join(job.target_usernames)})")
+        job_service.add_job_log(job_id, f"スクレイピングセッションを開始: {', '.join(job.target_usernames)}")
+        
+        try:
+            session = ScrapingSession()
+            results = await session.run_session(job.target_usernames)
+            logger.info(f"ジョブ {job_id}: スクレイピングセッション完了 - 結果: {list(results.keys())}")
+        except Exception as e:
+            logger.error(f"ジョブ {job_id}: スクレイピングセッションエラー: {e}")
+            job_service.add_job_log(job_id, f"スクレイピングエラー: {str(e)}")
+            raise
         
         total_tweets = sum(len(tweets) for tweets in results.values())
         stats.tweets_collected = total_tweets
@@ -255,6 +266,25 @@ async def run_single_job(job_id: str):
         return False
     
     logger.info(f"ジョブを実行中: {job.job_id}")
+    
+    # ジョブが完了またはキャンセル状態の場合は、状態をリセット
+    if job.status in [ScrapingJobStatus.COMPLETED.value, ScrapingJobStatus.CANCELLED.value, ScrapingJobStatus.FAILED.value]:
+        logger.info(f"ジョブ状態をリセット: {job.job_id} ({job.status} -> pending)")
+        job_service.collection.update_one(
+            {"job_id": job.job_id},
+            {
+                "$set": {
+                    "status": ScrapingJobStatus.PENDING.value,
+                    "completed_at": None,
+                    "started_at": None
+                },
+                "$unset": {
+                    "errors": "",
+                }
+            }
+        )
+        # ジョブオブジェクトを再取得
+        job = job_service.get_job(job.job_id)
     
     try:
         success = await execute_job(job)

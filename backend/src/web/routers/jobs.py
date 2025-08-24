@@ -357,8 +357,7 @@ async def run_job_immediately(job_id: str, background_tasks: BackgroundTasks):
             )
         
         # 現在のプロジェクトディレクトリを取得
-        project_root = Path(__file__).parent.parent.parent.parent
-        backend_path = project_root / "backend"
+        backend_path = Path(__file__).parent.parent.parent.parent
         venv_python = backend_path / "venv" / "bin" / "python"
         main_script = backend_path / "main.py"
         
@@ -403,8 +402,7 @@ async def run_pending_jobs_now(background_tasks: BackgroundTasks):
         from pathlib import Path
         
         # 現在のプロジェクトディレクトリを取得
-        project_root = Path(__file__).parent.parent.parent.parent
-        backend_path = project_root / "backend"
+        backend_path = Path(__file__).parent.parent.parent.parent
         venv_python = backend_path / "venv" / "bin" / "python"
         main_script = backend_path / "main.py"
         
