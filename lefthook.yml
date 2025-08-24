@@ -11,19 +11,19 @@ pre-commit:
     
     frontend-format:
       root: "frontend/"
-      glob: "src/**/*.{ts,tsx,json}"
+      glob: "**/*.{ts,tsx,json}"
       run: pnpm run format
       stage_fixed: true
     
     frontend-lint:
       root: "frontend/"
-      glob: "src/**/*.{ts,tsx}"
-      run: pnpm run lint -- --fix
+      glob: "**/*.{ts,tsx}"
+      run: pnpm run lint:fix
       stage_fixed: true
     
     ts-check:
       root: "frontend/"
-      glob: "src/**/*.{ts,tsx}"
+      glob: "**/*.{ts,tsx}"
       run: pnpm run type-check
 
 pre-push:

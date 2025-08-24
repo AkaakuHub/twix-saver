@@ -72,7 +72,5 @@ interface CardDescriptionProps {
 }
 
 export const CardDescription = ({ children, className }: CardDescriptionProps) => (
-  <p className={clsx('text-sm text-gray-600 mt-1', className)}>
-    {children}
-  </p>
+  <p className={clsx('text-sm text-gray-600 mt-1', className)}>{children}</p>
 )

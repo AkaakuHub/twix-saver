@@ -24,7 +24,10 @@ const navigation = [
 
 export const Sidebar = ({ open, setOpen }: SidebarProps) => {
   const SidebarContent = () => (
-    <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-2" data-testid="sidebar">
+    <div
+      className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-2"
+      data-testid="sidebar"
+    >
       <div className="flex h-16 shrink-0 items-center">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">

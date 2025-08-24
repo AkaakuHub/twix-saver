@@ -22,16 +22,10 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(
   }
 )
 
-interface AlertDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
+type AlertDescriptionProps = React.HTMLAttributes<HTMLParagraphElement>
 
 export const AlertDescription = forwardRef<HTMLParagraphElement, AlertDescriptionProps>(
   ({ className, ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={clsx('text-sm leading-relaxed', className)}
-        {...props}
-      />
-    )
+    return <div ref={ref} className={clsx('text-sm leading-relaxed', className)} {...props} />
   }
 )

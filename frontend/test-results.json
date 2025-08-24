@@ -15,10 +15,7 @@
     },
     "preserveOutput": "always",
     "reporter": [
-      [
-        "html",
-        null
-      ],
+      ["html", null],
       [
         "json",
         {
@@ -43,9 +40,7 @@
         "name": "chromium",
         "testDir": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests",
         "testIgnore": [],
-        "testMatch": [
-          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
-        ],
+        "testMatch": ["**/*.@(spec|test).?(c|m)[jt]s?(x)"],
         "timeout": 30000
       },
       {
@@ -59,9 +54,7 @@
         "name": "firefox",
         "testDir": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests",
         "testIgnore": [],
-        "testMatch": [
-          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
-        ],
+        "testMatch": ["**/*.@(spec|test).?(c|m)[jt]s?(x)"],
         "timeout": 30000
       },
       {
@@ -75,9 +68,7 @@
         "name": "webkit",
         "testDir": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests",
         "testIgnore": [],
-        "testMatch": [
-          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
-        ],
+        "testMatch": ["**/*.@(spec|test).?(c|m)[jt]s?(x)"],
         "timeout": 30000
       }
     ],

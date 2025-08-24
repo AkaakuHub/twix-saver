@@ -15,7 +15,6 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
       onChange?.(e)
     }
 
-
     return (
       <div className="flex items-center space-x-3">
         <label className="relative inline-flex cursor-pointer">

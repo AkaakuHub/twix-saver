@@ -21,7 +21,7 @@ export const Dashboard = () => {
     if (!jobStats || typeof jobStats !== 'object') return 0
     const stats = jobStats as { successful?: number; total?: number }
     if (!stats.total || stats.total === 0) return 0
-    return Math.round((stats.successful || 0) / stats.total * 100)
+    return Math.round(((stats.successful || 0) / stats.total) * 100)
   }
 
   const isLoading = usersLoading || activeJobsLoading || jobStatsLoading || tweetStatsLoading
@@ -44,12 +44,8 @@ export const Dashboard = () => {
         </div>
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2">
-            <div
-              className="w-2 h-2 rounded-full bg-green-500"
-            />
-            <span className="text-sm text-gray-600">
-              API接続中
-            </span>
+            <div className="w-2 h-2 rounded-full bg-green-500" />
+            <span className="text-sm text-gray-600">API接続中</span>
           </div>
           <Button icon={<PlusIcon className="w-4 h-4" />}>新規ジョブ作成</Button>
         </div>

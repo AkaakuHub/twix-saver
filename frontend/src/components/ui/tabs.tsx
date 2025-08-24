@@ -19,9 +19,7 @@ export function Tabs({ defaultValue, className, children }: TabsProps) {
 
   return (
     <TabsContext.Provider value={{ activeTab, onTabChange: setActiveTab }}>
-      <div className={clsx('tabs', className)}>
-        {children}
-      </div>
+      <div className={clsx('tabs', className)}>{children}</div>
     </TabsContext.Provider>
   )
 }
@@ -82,12 +80,8 @@ export function TabsContent({ value, className, children }: TabsContentProps) {
   if (!context) throw new Error('TabsContent must be used within Tabs')
 
   const { activeTab } = context
-  
+
   if (activeTab !== value) return null
 
-  return (
-    <div className={clsx('mt-4', className)}>
-      {children}
-    </div>
-  )
+  return <div className={clsx('mt-4', className)}>{children}</div>
 }

@@ -62,11 +62,7 @@ export const ActivityFeed = () => {
   }
 
   if (allActivities.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        最近のアクティビティはありません
-      </div>
-    )
+    return <div className="text-center py-8 text-gray-500">最近のアクティビティはありません</div>
   }
 
   return (
