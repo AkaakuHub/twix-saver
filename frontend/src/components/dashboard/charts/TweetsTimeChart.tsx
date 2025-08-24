@@ -25,10 +25,11 @@ export const TweetsTimeChart = () => {
       if (!response.ok) {
         throw new Error('ツイート時系列データの取得に失敗しました')
       }
-      return response.json()
+      const result = await response.json()
+      return result.data || []
     },
-    staleTime: 1000 * 60 * 5, // 5分
-    refetchInterval: 1000 * 60, // 1分毎に自動更新
+    staleTime: Infinity, // 手動更新のみ
+    refetchOnWindowFocus: false,
   })
 
   if (isLoading) {

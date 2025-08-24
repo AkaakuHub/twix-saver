@@ -109,13 +109,7 @@ class ApiClient {
     return this.get('/health')
   }
 
-  // WebSocket URLを取得
-  getWebSocketUrl(): string {
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsHost =
-      (import.meta as { env?: Record<string, string> }).env?.VITE_API_HOST || 'localhost:8000'
-    return `${wsProtocol}//${wsHost}/api/ws`
-  }
+  // WebSocket機能を削除しました
 }
 
 // シングルトンインスタンス

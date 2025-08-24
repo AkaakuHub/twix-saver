@@ -10,7 +10,7 @@
     "dev:frontend": "cd frontend && pnpm run dev",
     "dev": "docker-compose up",
     "dev:watch": "docker-compose up --build",
-    "dev:backend": "docker-compose up -d mongodb && cd backend && source venv/bin/activate && uvicorn src.web.app:app --reload --host 0.0.0.0 --port 8000",
+    "dev:backend": "pkill -f 'uvicorn.*src\\.web\\.app:app.*8000' || true && sleep 2 && docker-compose up -d mongodb && cd backend && source venv/bin/activate && uvicorn src.web.app:app --reload --host 0.0.0.0 --port 8000",
     "dev:docker": "docker-compose up backend mongodb",
     "dev:docker-only": "docker-compose up backend",
     "build:frontend": "pnpm run generate-types && cd frontend && pnpm run build",

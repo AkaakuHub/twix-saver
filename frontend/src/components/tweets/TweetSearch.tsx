@@ -3,7 +3,7 @@ import { MagnifyingGlassIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Card } from '../ui/Card'
-import { useDebounce } from '../../hooks/useDebounce'
+import { useDebounceCallback } from '../../hooks/useDebounceCallback'
 
 interface TweetSearchProps {
   onSearch: (query: string) => void
@@ -36,7 +36,7 @@ export const TweetSearch = ({ onSearch, onFiltersChange, className = '' }: Tweet
   const [hashtagInput, setHashtagInput] = useState('')
 
   // デバウンスされた検索実行
-  const debouncedSearch = useDebounce((searchFilters: TweetFilters) => {
+  const debouncedSearch = useDebounceCallback((searchFilters: TweetFilters) => {
     onSearch(searchFilters.query)
     onFiltersChange(searchFilters)
   }, 300)

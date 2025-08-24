@@ -69,7 +69,7 @@ export const useTweets = (params: TweetSearchParams = {}) => {
         return lastPage.hasMore ? lastPage.page + 1 : undefined
       },
       initialPageParam: 1,
-      staleTime: 1000 * 60 * 2, // 2分
+      staleTime: Infinity, // 手動更新のみ
       refetchOnWindowFocus: false,
     })
 
@@ -115,7 +115,7 @@ export const useTweetStats = () => {
         throw error
       }
     },
-    staleTime: 1000 * 60 * 5, // 5分
-    refetchInterval: 1000 * 60, // 1分毎に自動更新
+    staleTime: Infinity, // 手動更新のみ
+    refetchOnWindowFocus: false,
   })
 }

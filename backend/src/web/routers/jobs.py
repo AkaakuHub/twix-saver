@@ -125,6 +125,82 @@ async def get_running_jobs():
         raise HTTPException(status_code=500, detail=f"実行中ジョブ取得に失敗しました: {str(e)}")
 
 
+@router.get("/active", response_model=List[ScrapingJobResponse])
+async def get_active_jobs():
+    """アクティブジョブを取得"""
+    try:
+        jobs = job_service.get_running_jobs()
+        
+        response_jobs = []
+        for job in jobs:
+            job_dict = job.to_dict()
+            
+            # stats の型変換
+            if hasattr(job_dict.get('stats'), '__dict__'):
+                job_dict['stats'] = vars(job_dict['stats'])
+            elif job_dict.get('stats') is None:
+                job_dict['stats'] = {
+                    'tweets_collected': 0,
+                    'articles_extracted': 0,
+                    'media_downloaded': 0,
+                    'errors_count': 0,
+                    'processing_time_seconds': 0.0,
+                    'pages_scrolled': 0,
+                    'api_requests_made': 0
+                }
+            
+            response_jobs.append(ScrapingJobResponse(**job_dict))
+        
+        logger.info(f"アクティブジョブを取得: {len(response_jobs)}件")
+        return response_jobs
+        
+    except Exception as e:
+        logger.error(f"アクティブジョブ取得エラー: {e}")
+        raise HTTPException(status_code=500, detail=f"アクティブジョブ取得に失敗しました: {str(e)}")
+
+
+@router.get("/stats", response_model=JobStatistics)
+async def get_job_stats(days: int = Query(7, ge=1, le=365)):
+    """ジョブ統計を取得"""
+    try:
+        stats = job_service.get_job_statistics(days=days)
+        
+        return JobStatistics(
+            total_jobs=stats.get("total_jobs", 0),
+            completed_jobs=stats.get("completed_jobs", 0),
+            failed_jobs=stats.get("failed_jobs", 0),
+            total_tweets=stats.get("total_tweets", 0),
+            total_articles=stats.get("total_articles", 0),
+            success_rate=round(stats.get("success_rate", 0), 2),
+            avg_processing_time=round(stats.get("avg_processing_time", 0), 2),
+            daily_stats=stats.get("daily_stats", {})
+        )
+        
+    except Exception as e:
+        logger.error(f"ジョブ統計取得エラー: {e}")
+        raise HTTPException(status_code=500, detail=f"ジョブ統計取得に失敗しました: {str(e)}")
+
+
+@router.get("/success-rate")
+async def get_job_success_rate(days: int = Query(7, ge=1, le=365)):
+    """ジョブ成功率を取得"""
+    try:
+        stats = job_service.get_job_statistics(days=days)
+        success_rate = stats.get("success_rate", 0)
+        
+        return {
+            "success_rate": round(success_rate, 2),
+            "total_jobs": stats.get("total_jobs", 0),
+            "completed_jobs": stats.get("completed_jobs", 0),
+            "failed_jobs": stats.get("failed_jobs", 0),
+            "days": days
+        }
+        
+    except Exception as e:
+        logger.error(f"ジョブ成功率取得エラー: {e}")
+        raise HTTPException(status_code=500, detail=f"ジョブ成功率取得に失敗しました: {str(e)}")
+
+
 @router.get("/{job_id}", response_model=ScrapingJobResponse)
 async def get_job(job_id: str):
     """指定ジョブの詳細を取得"""

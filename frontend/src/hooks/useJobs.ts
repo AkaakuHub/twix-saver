@@ -31,8 +31,8 @@ export const useJobs = () => {
         throw error
       }
     },
-    staleTime: 1000 * 30, // 30秒
-    refetchInterval: 1000 * 10, // 10秒毎に自動更新
+    staleTime: Infinity, // 手動更新のみ
+    refetchOnWindowFocus: false,
   })
 
   const createJobMutation = useMutation({
@@ -120,8 +120,8 @@ export const useActiveJobs = () => {
         throw error
       }
     },
-    staleTime: 1000 * 10, // 10秒
-    refetchInterval: 1000 * 5, // 5秒毎に自動更新
+    staleTime: Infinity, // 手動更新のみ
+    refetchOnWindowFocus: false,
   })
 }
 
@@ -144,7 +144,7 @@ export const useJobStats = () => {
         throw error
       }
     },
-    staleTime: 1000 * 60, // 1分
-    refetchInterval: 1000 * 30, // 30秒毎に自動更新
+    staleTime: Infinity, // 手動更新のみ
+    refetchOnWindowFocus: false,
   })
 }

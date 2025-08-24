@@ -65,3 +65,14 @@ interface CardContentProps {
 export const CardContent = ({ children, className }: CardContentProps) => (
   <div className={className}>{children}</div>
 )
+
+interface CardDescriptionProps {
+  children: React.ReactNode
+  className?: string
+}
+
+export const CardDescription = ({ children, className }: CardDescriptionProps) => (
+  <p className={clsx('text-sm text-gray-600 mt-1', className)}>
+    {children}
+  </p>
+)

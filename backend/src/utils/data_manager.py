@@ -301,6 +301,13 @@ class MongoDBManager:
             self.logger.error(f"統計取得エラー: {e}")
             return {}
     
+    def get_collection(self, collection_name: str) -> Collection:
+        """指定されたコレクションを取得"""
+        if not self.is_connected:
+            raise ConnectionError("MongoDB接続が確立されていません")
+        
+        return self.db[collection_name]
+    
     def close(self):
         """接続を閉じる"""
         if self.client:

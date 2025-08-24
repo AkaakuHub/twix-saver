@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -10,8 +9,6 @@ import {
   ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
-import { useWebSocketStore } from '../../stores/websocketStore'
-import { WebSocketMessage } from '../../types'
 import { clsx } from 'clsx'
 
 interface ActivityItem {
@@ -39,9 +36,6 @@ const colorMap = {
 }
 
 export const ActivityFeed = () => {
-  const [realtimeActivities, setRealtimeActivities] = useState<ActivityItem[]>([])
-  const { ws, connected } = useWebSocketStore()
-
   const { data: activities = [], isLoading } = useQuery({
     queryKey: ['activity-feed'],
     queryFn: async (): Promise<ActivityItem[]> => {
@@ -51,83 +45,13 @@ export const ActivityFeed = () => {
       }
       return response.json()
     },
-    staleTime: 1000 * 60, // 1分
+    staleTime: Infinity,
     refetchOnWindowFocus: false,
   })
 
-  // WebSocketメッセージ処理
-  useEffect(() => {
-    if (!ws || !connected) return
-
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const message: WebSocketMessage = JSON.parse(event.data)
-
-        if (
-          message.type === 'log' ||
-          message.type === 'job_update' ||
-          message.type === 'system_stats'
-        ) {
-          // ログや更新情報をアクティビティフィードに変換
-          const newActivity: ActivityItem = {
-            id: `${Date.now()}-${Math.random()}`,
-            type: getActivityType(message),
-            message: formatActivityMessage(message),
-            timestamp: (message.data.timestamp as string) || new Date().toISOString(),
-            details: message.data,
-          }
-
-          setRealtimeActivities(prev => [newActivity, ...prev.slice(0, 19)]) // 最新20件まで保持
-        }
-      } catch (error) {
-        console.error('WebSocketメッセージの処理に失敗:', error)
-      }
-    }
-
-    ws.addEventListener('message', handleMessage)
-    return () => {
-      ws.removeEventListener('message', handleMessage)
-    }
-  }, [ws, connected])
-
-  // アクティビティタイプの判定
-  const getActivityType = (message: WebSocketMessage): ActivityItem['type'] => {
-    switch (message.type) {
-      case 'job_update':
-        if ((message.data as Record<string, unknown>)?.status === 'completed')
-          return 'job_completed'
-        if ((message.data as Record<string, unknown>)?.status === 'failed') return 'job_failed'
-        return 'system_info'
-      case 'log':
-        if ((message.data as Record<string, unknown>)?.level === 'error') return 'job_failed'
-        if ((message.data as Record<string, unknown>)?.message?.toString().includes('ユーザー'))
-          return 'user_added'
-        if ((message.data as Record<string, unknown>)?.message?.toString().includes('ツイート'))
-          return 'tweet_collected'
-        return 'system_info'
-      default:
-        return 'system_info'
-    }
-  }
-
-  // アクティビティメッセージのフォーマット
-  const formatActivityMessage = (message: WebSocketMessage): string => {
-    switch (message.type) {
-      case 'job_update':
-        return `ジョブ「${(message.data as Record<string, unknown>)?.job_id || 'unknown'}」が${(message.data as Record<string, unknown>)?.status || 'unknown'}になりました`
-      case 'log':
-        return (message.data as Record<string, unknown>)?.message?.toString() || 'ログメッセージ'
-      case 'system_stats':
-        return 'システム統計が更新されました'
-      default:
-        return 'システムイベントが発生しました'
-    }
-  }
-
-  // リアルタイムアクティビティと通常のアクティビティをマージ
-  const allActivities = [...realtimeActivities, ...activities]
+  const allActivities = activities
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 10) // 最新10件まで表示
+    .slice(0, 10)
 
   if (isLoading) {
     return (
@@ -140,33 +64,18 @@ export const ActivityFeed = () => {
   if (allActivities.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
-        {connected ? (
-          <div>
-            <div className="mb-2">リアルタイム接続中...</div>
-            <div className="text-xs">最近のアクティビティはありません</div>
-          </div>
-        ) : (
-          <div>最近のアクティビティはありません</div>
-        )}
+        最近のアクティビティはありません
       </div>
     )
   }
 
   return (
-    <div className="flow-root">
-      {/* リアルタイム接続状態 */}
-      {connected && realtimeActivities.length > 0 && (
-        <div className="mb-3 px-2 py-1 bg-green-50 rounded text-xs text-green-600 flex items-center">
-          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2 animate-pulse" />
-          リアルタイム更新
-        </div>
-      )}
-
+    <div className="flow-root" data-testid="activity-feed">
       <ul className="-mb-8">
         {allActivities.map((activity, index) => {
           const Icon = iconMap[activity.type]
           const isLast = index === allActivities.length - 1
-          const isRealtime = realtimeActivities.some(ra => ra.id === activity.id)
+          const isRealtime = false
 
           return (
             <li key={activity.id}>

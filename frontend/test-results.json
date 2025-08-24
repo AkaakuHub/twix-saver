@@ -1,0 +1,1710 @@
+{
+  "config": {
+    "configFile": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/playwright.config.ts",
+    "rootDir": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 5
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 5
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 5
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 5
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.55.0",
+    "workers": 5,
+    "webServer": {
+      "command": "pnpm dev",
+      "url": "http://localhost:5173",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "app-functionality.spec.ts",
+      "file": "app-functionality.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Twix Saver Frontend - 全機能テスト",
+          "file": "app-functionality.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "メインページの読み込みとレンダリング",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 6111,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('header')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('header')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('header')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('header')\u001b[22m\n\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:32:42",
+                        "location": {
+                          "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                          "column": 42,
+                          "line": 32
+                        },
+                        "snippet": "  30 |     \n  31 |     // ヘッダーが表示されること\n> 32 |     await expect(page.locator('header')).toBeVisible();\n     |                                          ^\n  33 |   });\n  34 |\n  35 |   test('ダッシュボードページの機能確認', async ({ page }) => {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                            "column": 42,
+                            "line": 32
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('header')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('header')\u001b[22m\n\n\n  30 |     \n  31 |     // ヘッダーが表示されること\n> 32 |     await expect(page.locator('header')).toBeVisible();\n     |                                          ^\n  33 |   });\n  34 |\n  35 |   test('ダッシュボードページの機能確認', async ({ page }) => {\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:32:42"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:34.959Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-7f112---全機能テスト-メインページの読み込みとレンダリング-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-7f112---全機能テスト-メインページの読み込みとレンダリング-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-7f112---全機能テスト-メインページの読み込みとレンダリング-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                        "column": 42,
+                        "line": 32
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-5ed76adc4fef2a5079fb",
+              "file": "app-functionality.spec.ts",
+              "line": 19,
+              "column": 3
+            },
+            {
+              "title": "ダッシュボードページの機能確認",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 6154,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('.stats-card')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.stats-card')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('.stats-card')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.stats-card')\u001b[22m\n\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:42:47",
+                        "location": {
+                          "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                          "column": 47,
+                          "line": 42
+                        },
+                        "snippet": "  40 |     \n  41 |     // ダッシュボードの統計カードが表示されること\n> 42 |     await expect(page.locator('.stats-card')).toBeVisible();\n     |                                               ^\n  43 |     \n  44 |     // チャートが表示されること（エラーなしでレンダリング）\n  45 |     await expect(page.locator('.recharts-wrapper')).toBeVisible();"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                            "column": 47,
+                            "line": 42
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('.stats-card')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.stats-card')\u001b[22m\n\n\n  40 |     \n  41 |     // ダッシュボードの統計カードが表示されること\n> 42 |     await expect(page.locator('.stats-card')).toBeVisible();\n     |                                               ^\n  43 |     \n  44 |     // チャートが表示されること（エラーなしでレンダリング）\n  45 |     await expect(page.locator('.recharts-wrapper')).toBeVisible();\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:42:47"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:34.967Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-3690e-nd---全機能テスト-ダッシュボードページの機能確認-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-3690e-nd---全機能テスト-ダッシュボードページの機能確認-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-3690e-nd---全機能テスト-ダッシュボードページの機能確認-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                        "column": 47,
+                        "line": 42
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-cb4cd67d7491fb9a9233",
+              "file": "app-functionality.spec.ts",
+              "line": 35,
+              "column": 3
+            },
+            {
+              "title": "設定ページの機能確認",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 6200,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('[role=\"tablist\"]')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[role=\"tablist\"]')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('[role=\"tablist\"]')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[role=\"tablist\"]')\u001b[22m\n\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:58:52",
+                        "location": {
+                          "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                          "column": 52,
+                          "line": 58
+                        },
+                        "snippet": "  56 |     \n  57 |     // タブナビゲーションが表示されること\n> 58 |     await expect(page.locator('[role=\"tablist\"]')).toBeVisible();\n     |                                                    ^\n  59 |     \n  60 |     // プロキシ設定フォームが表示されること\n  61 |     await page.click('text=プロキシ');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                            "column": 52,
+                            "line": 58
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('[role=\"tablist\"]')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[role=\"tablist\"]')\u001b[22m\n\n\n  56 |     \n  57 |     // タブナビゲーションが表示されること\n> 58 |     await expect(page.locator('[role=\"tablist\"]')).toBeVisible();\n     |                                                    ^\n  59 |     \n  60 |     // プロキシ設定フォームが表示されること\n  61 |     await page.click('text=プロキシ');\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:58:52"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:34.963Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-設定ページの機能確認-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-設定ページの機能確認-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-設定ページの機能確認-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                        "column": 52,
+                        "line": 58
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-f62096593a2daefa1d53",
+              "file": "app-functionality.spec.ts",
+              "line": 51,
+              "column": 3
+            },
+            {
+              "title": "設定保存機能のテスト",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 1481,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:34.955Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-5cdd24b75dfb87630afa",
+              "file": "app-functionality.spec.ts",
+              "line": 73,
+              "column": 3
+            },
+            {
+              "title": "レスポンシブデザインの確認",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 1338,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:34.957Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-22d175418d1921435c4f",
+              "file": "app-functionality.spec.ts",
+              "line": 89,
+              "column": 3
+            },
+            {
+              "title": "エラーハンドリングの確認",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "failed",
+                      "duration": 10272,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\u001b[22m\n\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:120:41",
+                        "location": {
+                          "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                          "column": 41,
+                          "line": 120
+                        },
+                        "snippet": "  118 |     // エラーバウンダリまたはエラーメッセージが表示されること\n  119 |     const errorElements = page.locator('text=エラー').or(page.locator('[data-testid=\"error-boundary\"]'));\n> 120 |     await expect(errorElements.first()).toBeVisible({ timeout: 10000 });\n      |                                         ^\n  121 |   });\n  122 |\n  123 |   test('UIコンポーネントの動作確認', async ({ page }) => {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                            "column": 41,
+                            "line": 120
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\u001b[22m\n\n\n  118 |     // エラーバウンダリまたはエラーメッセージが表示されること\n  119 |     const errorElements = page.locator('text=エラー').or(page.locator('[data-testid=\"error-boundary\"]'));\n> 120 |     await expect(errorElements.first()).toBeVisible({ timeout: 10000 });\n      |                                         ^\n  121 |   });\n  122 |\n  123 |   test('UIコンポーネントの動作確認', async ({ page }) => {\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:120:41"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        },
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        },
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        },
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        },
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        },
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        },
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        },
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        },
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        },
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        },
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        },
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        },
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        },
+                        {
+                          "text": "Console error: Failed to load resource: net::ERR_FAILED\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:36.578Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-エラーハンドリングの確認-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-エラーハンドリングの確認-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-エラーハンドリングの確認-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                        "column": 41,
+                        "line": 120
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-1b6ac8fa19fcbff6e4c4",
+              "file": "app-functionality.spec.ts",
+              "line": 112,
+              "column": 3
+            },
+            {
+              "title": "UIコンポーネントの動作確認",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 448,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:36.721Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-2e24354b7813b4622214",
+              "file": "app-functionality.spec.ts",
+              "line": 123,
+              "column": 3
+            },
+            {
+              "title": "フォームバリデーションの確認",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 1538,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:37.175Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-716cd3de4d8a88807589",
+              "file": "app-functionality.spec.ts",
+              "line": 142,
+              "column": 3
+            },
+            {
+              "title": "ナビゲーションの確認",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 386,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:38.720Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-e514c49a9b05dd27622f",
+              "file": "app-functionality.spec.ts",
+              "line": 159,
+              "column": 3
+            },
+            {
+              "title": "パフォーマンステスト",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 372,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:39.110Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-2de90cacdb7a31eeeb77",
+              "file": "app-functionality.spec.ts",
+              "line": 171,
+              "column": 3
+            },
+            {
+              "title": "メインページの読み込みとレンダリング",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 6425,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('header')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('header')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('header')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('header')\u001b[22m\n\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:32:42",
+                        "location": {
+                          "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                          "column": 42,
+                          "line": 32
+                        },
+                        "snippet": "  30 |     \n  31 |     // ヘッダーが表示されること\n> 32 |     await expect(page.locator('header')).toBeVisible();\n     |                                          ^\n  33 |   });\n  34 |\n  35 |   test('ダッシュボードページの機能確認', async ({ page }) => {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                            "column": 42,
+                            "line": 32
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('header')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('header')\u001b[22m\n\n\n  30 |     \n  31 |     // ヘッダーが表示されること\n> 32 |     await expect(page.locator('header')).toBeVisible();\n     |                                          ^\n  33 |   });\n  34 |\n  35 |   test('ダッシュボードページの機能確認', async ({ page }) => {\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:32:42"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:39.827Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-7f112---全機能テスト-メインページの読み込みとレンダリング-firefox/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-7f112---全機能テスト-メインページの読み込みとレンダリング-firefox/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-7f112---全機能テスト-メインページの読み込みとレンダリング-firefox/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                        "column": 42,
+                        "line": 32
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-b6848d886b2c794df38b",
+              "file": "app-functionality.spec.ts",
+              "line": 19,
+              "column": 3
+            },
+            {
+              "title": "ダッシュボードページの機能確認",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 6348,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('.stats-card')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.stats-card')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('.stats-card')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.stats-card')\u001b[22m\n\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:42:47",
+                        "location": {
+                          "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                          "column": 47,
+                          "line": 42
+                        },
+                        "snippet": "  40 |     \n  41 |     // ダッシュボードの統計カードが表示されること\n> 42 |     await expect(page.locator('.stats-card')).toBeVisible();\n     |                                               ^\n  43 |     \n  44 |     // チャートが表示されること（エラーなしでレンダリング）\n  45 |     await expect(page.locator('.recharts-wrapper')).toBeVisible();"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                            "column": 47,
+                            "line": 42
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('.stats-card')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.stats-card')\u001b[22m\n\n\n  40 |     \n  41 |     // ダッシュボードの統計カードが表示されること\n> 42 |     await expect(page.locator('.stats-card')).toBeVisible();\n     |                                               ^\n  43 |     \n  44 |     // チャートが表示されること（エラーなしでレンダリング）\n  45 |     await expect(page.locator('.recharts-wrapper')).toBeVisible();\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:42:47"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:41.774Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-3690e-nd---全機能テスト-ダッシュボードページの機能確認-firefox/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-3690e-nd---全機能テスト-ダッシュボードページの機能確認-firefox/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-3690e-nd---全機能テスト-ダッシュボードページの機能確認-firefox/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                        "column": 47,
+                        "line": 42
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-c990a61470a24ab54f5a",
+              "file": "app-functionality.spec.ts",
+              "line": 35,
+              "column": 3
+            },
+            {
+              "title": "設定ページの機能確認",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 6414,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('[role=\"tablist\"]')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[role=\"tablist\"]')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('[role=\"tablist\"]')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[role=\"tablist\"]')\u001b[22m\n\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:58:52",
+                        "location": {
+                          "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                          "column": 52,
+                          "line": 58
+                        },
+                        "snippet": "  56 |     \n  57 |     // タブナビゲーションが表示されること\n> 58 |     await expect(page.locator('[role=\"tablist\"]')).toBeVisible();\n     |                                                    ^\n  59 |     \n  60 |     // プロキシ設定フォームが表示されること\n  61 |     await page.click('text=プロキシ');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                            "column": 52,
+                            "line": 58
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('[role=\"tablist\"]')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[role=\"tablist\"]')\u001b[22m\n\n\n  56 |     \n  57 |     // タブナビゲーションが表示されること\n> 58 |     await expect(page.locator('[role=\"tablist\"]')).toBeVisible();\n     |                                                    ^\n  59 |     \n  60 |     // プロキシ設定フォームが表示されること\n  61 |     await page.click('text=プロキシ');\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:58:52"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:41.824Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-設定ページの機能確認-firefox/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-設定ページの機能確認-firefox/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-設定ページの機能確認-firefox/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                        "column": 52,
+                        "line": 58
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-55d22785be68615103af",
+              "file": "app-functionality.spec.ts",
+              "line": 51,
+              "column": 3
+            },
+            {
+              "title": "設定保存機能のテスト",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 1528,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:41.831Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-84544e7b3c8925f06c99",
+              "file": "app-functionality.spec.ts",
+              "line": 73,
+              "column": 3
+            },
+            {
+              "title": "レスポンシブデザインの確認",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 1102,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:44.624Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-b5d1d85d36c2fd16cf68",
+              "file": "app-functionality.spec.ts",
+              "line": 89,
+              "column": 3
+            },
+            {
+              "title": "エラーハンドリングの確認",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 10552,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\u001b[22m\n\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:120:41",
+                        "location": {
+                          "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                          "column": 41,
+                          "line": 120
+                        },
+                        "snippet": "  118 |     // エラーバウンダリまたはエラーメッセージが表示されること\n  119 |     const errorElements = page.locator('text=エラー').or(page.locator('[data-testid=\"error-boundary\"]'));\n> 120 |     await expect(errorElements.first()).toBeVisible({ timeout: 10000 });\n      |                                         ^\n  121 |   });\n  122 |\n  123 |   test('UIコンポーネントの動作確認', async ({ page }) => {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                            "column": 41,
+                            "line": 120
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\u001b[22m\n\n\n  118 |     // エラーバウンダリまたはエラーメッセージが表示されること\n  119 |     const errorElements = page.locator('text=エラー').or(page.locator('[data-testid=\"error-boundary\"]'));\n> 120 |     await expect(errorElements.first()).toBeVisible({ timeout: 10000 });\n      |                                         ^\n  121 |   });\n  122 |\n  123 |   test('UIコンポーネントの動作確認', async ({ page }) => {\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:120:41"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/users. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        },
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/jobs/active. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        },
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/jobs/stats. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        },
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/tweets/stats. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        },
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/users. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        },
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/jobs/active. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        },
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/jobs/stats. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        },
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/tweets/stats. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        },
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/tweets/time-series?days=7. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        },
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/jobs/success-rate. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        },
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/activities. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        },
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/tweets/time-series?days=7. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        },
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/jobs/success-rate. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        },
+                        {
+                          "text": "Console error: [JavaScript Error: \"Cross-Origin Request Blocked: The Same Origin Policy disallows reading the remote resource at http://localhost:8000/api/activities. (Reason: CORS request did not succeed). Status code: (null).\"]\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:45.731Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-エラーハンドリングの確認-firefox/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-エラーハンドリングの確認-firefox/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-エラーハンドリングの確認-firefox/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                        "column": 41,
+                        "line": 120
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-384484bd37fdd2c4364c",
+              "file": "app-functionality.spec.ts",
+              "line": 112,
+              "column": 3
+            },
+            {
+              "title": "UIコンポーネントの動作確認",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 1294,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:47.148Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-c7dd4bee6b5dc48b901e",
+              "file": "app-functionality.spec.ts",
+              "line": 123,
+              "column": 3
+            },
+            {
+              "title": "フォームバリデーションの確認",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 10,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 2388,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:47.597Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-1fcfc1596dd54d89b0a1",
+              "file": "app-functionality.spec.ts",
+              "line": 142,
+              "column": 3
+            },
+            {
+              "title": "ナビゲーションの確認",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 687,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:48.877Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-f7fdc22f588c10ccb9c7",
+              "file": "app-functionality.spec.ts",
+              "line": 159,
+              "column": 3
+            },
+            {
+              "title": "パフォーマンステスト",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "firefox",
+                  "projectName": "firefox",
+                  "results": [
+                    {
+                      "workerIndex": 11,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1514,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:49.368Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-7b7247cec0022a84b406",
+              "file": "app-functionality.spec.ts",
+              "line": 171,
+              "column": 3
+            },
+            {
+              "title": "メインページの読み込みとレンダリング",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 12,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 5835,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('header')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('header')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('header')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('header')\u001b[22m\n\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:32:42",
+                        "location": {
+                          "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                          "column": 42,
+                          "line": 32
+                        },
+                        "snippet": "  30 |     \n  31 |     // ヘッダーが表示されること\n> 32 |     await expect(page.locator('header')).toBeVisible();\n     |                                          ^\n  33 |   });\n  34 |\n  35 |   test('ダッシュボードページの機能確認', async ({ page }) => {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                            "column": 42,
+                            "line": 32
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('header')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('header')\u001b[22m\n\n\n  30 |     \n  31 |     // ヘッダーが表示されること\n> 32 |     await expect(page.locator('header')).toBeVisible();\n     |                                          ^\n  33 |   });\n  34 |\n  35 |   test('ダッシュボードページの機能確認', async ({ page }) => {\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:32:42"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:49.682Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-7f112---全機能テスト-メインページの読み込みとレンダリング-webkit/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-7f112---全機能テスト-メインページの読み込みとレンダリング-webkit/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-7f112---全機能テスト-メインページの読み込みとレンダリング-webkit/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                        "column": 42,
+                        "line": 32
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-5d0f0dddfc51e3151047",
+              "file": "app-functionality.spec.ts",
+              "line": 19,
+              "column": 3
+            },
+            {
+              "title": "ダッシュボードページの機能確認",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 13,
+                      "parallelIndex": 4,
+                      "status": "failed",
+                      "duration": 5702,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('.stats-card')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.stats-card')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('.stats-card')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.stats-card')\u001b[22m\n\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:42:47",
+                        "location": {
+                          "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                          "column": 47,
+                          "line": 42
+                        },
+                        "snippet": "  40 |     \n  41 |     // ダッシュボードの統計カードが表示されること\n> 42 |     await expect(page.locator('.stats-card')).toBeVisible();\n     |                                               ^\n  43 |     \n  44 |     // チャートが表示されること（エラーなしでレンダリング）\n  45 |     await expect(page.locator('.recharts-wrapper')).toBeVisible();"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                            "column": 47,
+                            "line": 42
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('.stats-card')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.stats-card')\u001b[22m\n\n\n  40 |     \n  41 |     // ダッシュボードの統計カードが表示されること\n> 42 |     await expect(page.locator('.stats-card')).toBeVisible();\n     |                                               ^\n  43 |     \n  44 |     // チャートが表示されること（エラーなしでレンダリング）\n  45 |     await expect(page.locator('.recharts-wrapper')).toBeVisible();\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:42:47"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:50.305Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-3690e-nd---全機能テスト-ダッシュボードページの機能確認-webkit/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-3690e-nd---全機能テスト-ダッシュボードページの機能確認-webkit/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Sav-3690e-nd---全機能テスト-ダッシュボードページの機能確認-webkit/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                        "column": 47,
+                        "line": 42
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-450bb3cde5f5f02780af",
+              "file": "app-functionality.spec.ts",
+              "line": 35,
+              "column": 3
+            },
+            {
+              "title": "設定ページの機能確認",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 14,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 5614,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('[role=\"tablist\"]')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[role=\"tablist\"]')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('[role=\"tablist\"]')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[role=\"tablist\"]')\u001b[22m\n\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:58:52",
+                        "location": {
+                          "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                          "column": 52,
+                          "line": 58
+                        },
+                        "snippet": "  56 |     \n  57 |     // タブナビゲーションが表示されること\n> 58 |     await expect(page.locator('[role=\"tablist\"]')).toBeVisible();\n     |                                                    ^\n  59 |     \n  60 |     // プロキシ設定フォームが表示されること\n  61 |     await page.click('text=プロキシ');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                            "column": 52,
+                            "line": 58
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('[role=\"tablist\"]')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('[role=\"tablist\"]')\u001b[22m\n\n\n  56 |     \n  57 |     // タブナビゲーションが表示されること\n> 58 |     await expect(page.locator('[role=\"tablist\"]')).toBeVisible();\n     |                                                    ^\n  59 |     \n  60 |     // プロキシ設定フォームが表示されること\n  61 |     await page.click('text=プロキシ');\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:58:52"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:51.398Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-設定ページの機能確認-webkit/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-設定ページの機能確認-webkit/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-設定ページの機能確認-webkit/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                        "column": 52,
+                        "line": 58
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-dc71ead5f605f277704f",
+              "file": "app-functionality.spec.ts",
+              "line": 51,
+              "column": 3
+            },
+            {
+              "title": "設定保存機能のテスト",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 15,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 703,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:52.120Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-c1f0d7e81efd41a7ab66",
+              "file": "app-functionality.spec.ts",
+              "line": 73,
+              "column": 3
+            },
+            {
+              "title": "レスポンシブデザインの確認",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 15,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 568,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:52.965Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-00e32459e46e6504c97f",
+              "file": "app-functionality.spec.ts",
+              "line": 89,
+              "column": 3
+            },
+            {
+              "title": "エラーハンドリングの確認",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 15,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 10328,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\u001b[22m\n\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:120:41",
+                        "location": {
+                          "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                          "column": 41,
+                          "line": 120
+                        },
+                        "snippet": "  118 |     // エラーバウンダリまたはエラーメッセージが表示されること\n  119 |     const errorElements = page.locator('text=エラー').or(page.locator('[data-testid=\"error-boundary\"]'));\n> 120 |     await expect(errorElements.first()).toBeVisible({ timeout: 10000 });\n      |                                         ^\n  121 |   });\n  122 |\n  123 |   test('UIコンポーネントの動作確認', async ({ page }) => {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                            "column": 41,
+                            "line": 120
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=エラー').or(locator('[data-testid=\"error-boundary\"]')).first()\u001b[22m\n\n\n  118 |     // エラーバウンダリまたはエラーメッセージが表示されること\n  119 |     const errorElements = page.locator('text=エラー').or(page.locator('[data-testid=\"error-boundary\"]'));\n> 120 |     await expect(errorElements.first()).toBeVisible({ timeout: 10000 });\n      |                                         ^\n  121 |   });\n  122 |\n  123 |   test('UIコンポーネントの動作確認', async ({ page }) => {\n    at /Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts:120:41"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:53.541Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-エラーハンドリングの確認-webkit/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-エラーハンドリングの確認-webkit/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/test-results/app-functionality-Twix-Saver-Frontend---全機能テスト-エラーハンドリングの確認-webkit/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/akaaku/dev/AkaakuHub/twix-saver/frontend/tests/app-functionality.spec.ts",
+                        "column": 41,
+                        "line": 120
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-648ccb36858527532df8",
+              "file": "app-functionality.spec.ts",
+              "line": 112,
+              "column": 3
+            },
+            {
+              "title": "UIコンポーネントの動作確認",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 16,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 978,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:56.460Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-6d579d3ee2ba290cdbf8",
+              "file": "app-functionality.spec.ts",
+              "line": 123,
+              "column": 3
+            },
+            {
+              "title": "フォームバリデーションの確認",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 17,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 1857,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:56.691Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-f1742f47de00f20afb28",
+              "file": "app-functionality.spec.ts",
+              "line": 142,
+              "column": 3
+            },
+            {
+              "title": "ナビゲーションの確認",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 18,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 736,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:57.541Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-c369bb8862c8ce95e2d1",
+              "file": "app-functionality.spec.ts",
+              "line": 159,
+              "column": 3
+            },
+            {
+              "title": "パフォーマンステスト",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "webkit",
+                  "projectName": "webkit",
+                  "results": [
+                    {
+                      "workerIndex": 19,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 730,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-24T14:28:57.814Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "baff3c975e821cba5a73-0673e3b20cb215fe0be9",
+              "file": "app-functionality.spec.ts",
+              "line": 171,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-08-24T14:28:34.474Z",
+    "duration": 29440.285,
+    "expected": 18,
+    "skipped": 0,
+    "unexpected": 12,
+    "flaky": 0
+  }
+}

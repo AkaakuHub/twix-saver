@@ -14,7 +14,8 @@ from urllib.parse import urlparse
 from playwright.async_api import async_playwright, BrowserContext, Page, Response
 from playwright_stealth import stealth_async
 
-from src.config.settings import settings, TwitterAccount
+from src.config.settings import settings
+from src.models.database import TwitterAccount
 from src.utils.logger import setup_logger, log_performance
 
 
@@ -199,7 +200,7 @@ class TwitterScraper:
             # パスワード入力
             password_selector = 'input[name="password"]'
             await self.page.wait_for_selector(password_selector, timeout=10000)
-            await self.page.fill(password_selector, self.account.password)
+            await self.page.fill(password_selector, self.account.get_password_for_scraping())
             await self.page.keyboard.press("Enter")
             await self._random_delay(3, 5)
             

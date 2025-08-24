@@ -13,13 +13,12 @@ export const JobSuccessRateChart = () => {
       const result = await response.json()
 
       return [
-        { name: '成功', value: result.success || 0, color: '#10B981' },
-        { name: '失敗', value: result.failed || 0, color: '#EF4444' },
-        { name: 'キャンセル', value: result.cancelled || 0, color: '#6B7280' },
+        { name: '成功', value: result.completed_jobs || 0, color: '#10B981' },
+        { name: '失敗', value: result.failed_jobs || 0, color: '#EF4444' },
       ].filter(item => item.value > 0)
     },
-    staleTime: 1000 * 60 * 5, // 5分
-    refetchInterval: 1000 * 60, // 1分毎に自動更新
+    staleTime: Infinity, // 手動更新のみ
+    refetchOnWindowFocus: false,
   })
 
   if (isLoading) {

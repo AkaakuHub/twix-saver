@@ -13,7 +13,7 @@ from src.utils.data_manager import mongodb_manager
 from src.utils.logger import setup_logger
 
 router = APIRouter(prefix="/tweets", tags=["tweets"])
-logger = setup_logger("api.tweets")
+logger = setup_logger("api.tweets")  # reload trigger
 
 
 @router.get("/", response_model=List[TweetResponse])
@@ -161,31 +161,6 @@ async def search_tweets(q: str = Query(..., min_length=1, description="検索ク
         raise HTTPException(status_code=500, detail=f"ツイート検索に失敗しました: {str(e)}")
 
 
-@router.get("/{tweet_id}", response_model=TweetResponse)
-async def get_tweet(tweet_id: str):
-    """特定ツイートの詳細を取得"""
-    try:
-        if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
-        doc = mongodb_manager.tweets_collection.find_one({
-            "$or": [
-                {"id_str": tweet_id},
-                {"rest_id": tweet_id}
-            ]
-        })
-        
-        if not doc:
-            raise HTTPException(status_code=404, detail=f"ツイートが見つかりません: {tweet_id}")
-        
-        tweet = _convert_tweet_document(doc)
-        return TweetResponse(**tweet)
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"ツイート詳細取得エラー ({tweet_id}): {e}")
-        raise HTTPException(status_code=500, detail=f"ツイート詳細取得に失敗しました: {str(e)}")
 
 
 @router.get("/user/{username}/latest", response_model=List[TweetResponse])
@@ -230,9 +205,122 @@ async def get_user_latest_tweets(
         raise HTTPException(status_code=500, detail=f"ユーザー最新ツイート取得に失敗しました: {str(e)}")
 
 
+@router.get("/stats")
+async def get_tweet_stats():
+    """ツイート統計を取得"""
+    try:
+        if not mongodb_manager.is_connected:
+            raise HTTPException(status_code=500, detail="データベース接続エラー")
+        
+        # 基本統計
+        total_tweets = mongodb_manager.tweets_collection.count_documents({})
+        
+        # 今日のツイート数
+        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        tweets_today = mongodb_manager.tweets_collection.count_documents({
+            "scraped_at": {"$gte": today}
+        })
+        
+        # 今週のツイート数
+        week_ago = today - timedelta(days=7)
+        tweets_this_week = mongodb_manager.tweets_collection.count_documents({
+            "scraped_at": {"$gte": week_ago}
+        })
+        
+        # 記事付きツイート数
+        tweets_with_articles = mongodb_manager.tweets_collection.count_documents({
+            "extracted_articles": {"$exists": True, "$ne": []}
+        })
+        
+        # メディア付きツイート数
+        tweets_with_media = mongodb_manager.tweets_collection.count_documents({
+            "$or": [
+                {"legacy.entities.media": {"$exists": True, "$ne": []}},
+                {"downloaded_media": {"$exists": True, "$ne": []}}
+            ]
+        })
+        
+        # 最新ツイート
+        latest_tweet = mongodb_manager.tweets_collection.find_one(
+            {},
+            sort=[("scraped_at", -1)]
+        )
+        
+        stats = {
+            "total_tweets": total_tweets,
+            "tweets_today": tweets_today,
+            "tweets_this_week": tweets_this_week,
+            "tweets_with_articles": tweets_with_articles,
+            "tweets_with_media": tweets_with_media,
+            "latest_scraped_at": latest_tweet.get("scraped_at") if latest_tweet else None
+        }
+        
+        logger.info("ツイート統計を取得しました")
+        return stats
+        
+    except Exception as e:
+        logger.error(f"ツイート統計取得エラー: {e}")
+        raise HTTPException(status_code=500, detail=f"ツイート統計取得に失敗しました: {str(e)}")
+
+
+@router.get("/time-series")
+async def get_tweet_time_series(days: int = Query(7, ge=1, le=30)):
+    """ツイート時系列データを取得"""
+    try:
+        if not mongodb_manager.is_connected:
+            raise HTTPException(status_code=500, detail="データベース接続エラー")
+        
+        # 指定日数前からのデータを集計
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        # 日別のツイート数を集計
+        pipeline = [
+            {
+                "$match": {
+                    "scraped_at": {"$gte": start_date}
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "$dateToString": {
+                            "format": "%Y-%m-%d",
+                            "date": "$scraped_at"
+                        }
+                    },
+                    "count": {"$sum": 1}
+                }
+            },
+            {
+                "$sort": {"_id": 1}
+            }
+        ]
+        
+        time_series_data = list(mongodb_manager.tweets_collection.aggregate(pipeline))
+        
+        # 結果を整形
+        data = []
+        for item in time_series_data:
+            data.append({
+                "date": item["_id"],
+                "count": item["count"]
+            })
+        
+        logger.info(f"ツイート時系列データを取得: {days}日間, {len(data)}日分")
+        return {
+            "days": days,
+            "data": data,
+            "total_tweets": sum(item["count"] for item in data)
+        }
+        
+    except Exception as e:
+        logger.error(f"ツイート時系列データ取得エラー: {e}")
+        raise HTTPException(status_code=500, detail=f"ツイート時系列データ取得に失敗しました: {str(e)}")
+
+
 @router.get("/stats/summary")
 async def get_tweet_statistics():
-    """ツイート統計情報を取得"""
+    """ツイート統計情報を取得（詳細版）"""
     try:
         if not mongodb_manager.is_connected:
             raise HTTPException(status_code=500, detail="データベース接続エラー")
@@ -307,6 +395,33 @@ async def get_tweet_statistics():
     except Exception as e:
         logger.error(f"ツイート統計取得エラー: {e}")
         raise HTTPException(status_code=500, detail=f"ツイート統計取得に失敗しました: {str(e)}")
+
+
+@router.get("/{tweet_id}", response_model=TweetResponse)
+async def get_tweet(tweet_id: str):
+    """特定ツイートの詳細を取得"""
+    try:
+        if not mongodb_manager.is_connected:
+            raise HTTPException(status_code=500, detail="データベース接続エラー")
+        
+        doc = mongodb_manager.tweets_collection.find_one({
+            "$or": [
+                {"id_str": tweet_id},
+                {"rest_id": tweet_id}
+            ]
+        })
+        
+        if not doc:
+            raise HTTPException(status_code=404, detail=f"ツイートが見つかりません: {tweet_id}")
+        
+        tweet = _convert_tweet_document(doc)
+        return TweetResponse(**tweet)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"ツイート詳細取得エラー ({tweet_id}): {e}")
+        raise HTTPException(status_code=500, detail=f"ツイート詳細取得に失敗しました: {str(e)}")
 
 
 def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:

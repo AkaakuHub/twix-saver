@@ -1,9 +1,6 @@
-import { useState, useEffect } from 'react'
-import { useAutoWebSocket } from '../../hooks/useWebSocket'
 import { useActiveJobs, useJobStats } from '../../hooks/useJobs'
 import { useTweetStats } from '../../hooks/useTweets'
 import { useUsers } from '../../hooks/useUsers'
-import { useWebSocketStore } from '../../stores/websocketStore'
 import type { ScrapingJobResponse } from '../../types/api'
 import { StatsCard } from './StatsCard'
 import { ActivityFeed } from './ActivityFeed'
@@ -15,53 +12,16 @@ import { Button } from '../ui/Button'
 import { PlusIcon, PlayIcon, StopIcon } from '@heroicons/react/24/outline'
 
 export const Dashboard = () => {
-  const { connected: wsConnected } = useAutoWebSocket()
-  const { ws } = useWebSocketStore()
-
-  // リアルタイム統計状態
-  const [realtimeStats, setRealtimeStats] = useState<{
-    users?: { total: number; active: number }
-    tweets?: { total: number }
-    jobs?: { running: number }
-  } | null>(null)
-
   const { users = [], isLoading: usersLoading } = useUsers()
   const { data: activeJobs = [], isLoading: activeJobsLoading } = useActiveJobs()
   const { data: jobStats, isLoading: jobStatsLoading } = useJobStats()
   const { data: tweetStats, isLoading: tweetStatsLoading } = useTweetStats()
 
-  // WebSocket経由でシステム統計を受信
-  useEffect(() => {
-    if (!ws || !wsConnected) return
-
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const message = JSON.parse(event.data)
-
-        if (message.type === 'system_stats') {
-          setRealtimeStats(message.data)
-        }
-      } catch (error) {
-        console.error('WebSocketメッセージの処理に失敗:', error)
-      }
-    }
-
-    ws.addEventListener('message', handleMessage)
-    return () => {
-      ws.removeEventListener('message', handleMessage)
-    }
-  }, [ws, wsConnected])
-
-  // ジョブ成功率を計算
   const calculateSuccessRate = () => {
-    if (realtimeStats?.jobs) {
-      const jobs = realtimeStats.jobs as { completed_today?: number; failed_today?: number }
-      const completed_today = jobs.completed_today || 0
-      const failed_today = jobs.failed_today || 0
-      const total = completed_today + failed_today
-      return total > 0 ? Math.round((completed_today / total) * 100) : 0
-    }
-    return (jobStats as { successRate?: number })?.successRate || 0
+    if (!jobStats || typeof jobStats !== 'object') return 0
+    const stats = jobStats as { successful?: number; total?: number }
+    if (!stats.total || stats.total === 0) return 0
+    return Math.round((stats.successful || 0) / stats.total * 100)
   }
 
   const isLoading = usersLoading || activeJobsLoading || jobStatsLoading || tweetStatsLoading
@@ -85,10 +45,10 @@ export const Dashboard = () => {
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2">
             <div
-              className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-500' : 'bg-red-500'}`}
+              className="w-2 h-2 rounded-full bg-green-500"
             />
             <span className="text-sm text-gray-600">
-              {wsConnected ? 'リアルタイム接続中' : '接続なし'}
+              API接続中
             </span>
           </div>
           <Button icon={<PlusIcon className="w-4 h-4" />}>新規ジョブ作成</Button>
@@ -99,35 +59,21 @@ export const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="監視ユーザー数"
-          value={
-            (realtimeStats?.users as { total?: number })?.total || (users as unknown[]).length || 0
-          }
-          previousValue={
-            (realtimeStats?.users as { active?: number })?.active ||
-            (users as unknown[]).length ||
-            0
-          }
+          value={(users as unknown[]).length || 0}
+          previousValue={(users as unknown[]).length || 0}
           icon="users"
           color="blue"
         />
         <StatsCard
           title="収集ツイート数"
-          value={
-            (realtimeStats?.tweets as { total?: number })?.total ||
-            (tweetStats as { total?: number })?.total ||
-            0
-          }
+          value={(tweetStats as { total?: number })?.total || 0}
           previousValue={(tweetStats as { yesterday?: number })?.yesterday || 0}
           icon="tweets"
           color="green"
         />
         <StatsCard
           title="実行中ジョブ"
-          value={
-            (realtimeStats?.jobs as { running?: number })?.running ||
-            (activeJobs as unknown[]).length ||
-            0
-          }
+          value={(activeJobs as unknown[]).length || 0}
           previousValue={0}
           icon="jobs"
           color="yellow"

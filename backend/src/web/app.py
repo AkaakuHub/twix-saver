@@ -10,12 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 
-from src.web.routers import users, jobs, tweets, websocket
+from src.web.routers import users, jobs, tweets, settings, accounts
 from src.web.models import DashboardStats, SuccessResponse
 from src.services.user_service import user_service
 from src.services.job_service import job_service
 from src.utils.data_manager import mongodb_manager
 from src.utils.logger import setup_logger
+from src.config.settings import initialize_settings
 
 
 # ライフサイクル管理
@@ -32,8 +33,11 @@ async def lifespan(app: FastAPI):
         logger.error("MongoDB に接続できません")
         raise RuntimeError("データベース接続エラー")
     
-    # WebSocketバックグラウンドタスク開始
-    websocket.start_background_tasks()
+    # 設定システム初期化
+    initialize_settings()
+    logger.info("DB連携設定システムを初期化しました")
+    
+    # WebSocket機能を削除しました
     
     logger.info("WebUI サーバーが正常に起動しました")
     
@@ -53,15 +57,13 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS設定（React開発サーバー用）
+# CORS設定（初期設定として環境変数から取得、後でDB設定で動的更新される）
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # React dev server
-        "http://localhost:5173",  # Vite dev server
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,7 +73,9 @@ app.add_middleware(
 app.include_router(users.router, prefix="/api")
 app.include_router(jobs.router, prefix="/api")
 app.include_router(tweets.router, prefix="/api")
-app.include_router(websocket.router, prefix="/api")
+app.include_router(settings.router, prefix="/api")
+app.include_router(accounts.router, prefix="/api")
+# WebSocketルーターを削除しました
 
 # ロガー設定
 logger = setup_logger("web_app")
@@ -215,6 +219,73 @@ async def get_system_status():
     except Exception as e:
         logger.error(f"システム状態取得エラー: {e}")
         raise HTTPException(status_code=500, detail=f"システム状態取得に失敗しました: {str(e)}")
+
+
+@app.get("/api/activities")
+async def get_activities(limit: int = 50):
+    """アクティビティフィードを取得"""
+    try:
+        activities = []
+        
+        # 最近のジョブ（過去24時間）
+        recent_jobs = job_service.get_recent_jobs(hours=24)
+        for job in recent_jobs:
+            activities.append({
+                "id": str(job.id),
+                "type": "job",
+                "action": f"ジョブ{job.status}",
+                "message": f"スクレイピングジョブ '{job.id}' が{job.status}になりました",
+                "timestamp": job.created_at or job.updated_at,
+                "data": {
+                    "job_id": job.id,
+                    "status": job.status,
+                    "target_users": len(job.target_usernames) if job.target_usernames else 0
+                }
+            })
+        
+        # 最近のツイート（過去1時間）
+        from datetime import datetime, timedelta
+        one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+        
+        recent_tweets = list(mongodb_manager.tweets_collection.find({
+            "scraped_at": {"$gte": one_hour_ago}
+        }).sort("scraped_at", -1).limit(20))
+        
+        for tweet in recent_tweets:
+            username = ""
+            if "legacy" in tweet and "user" in tweet["legacy"]:
+                username = tweet["legacy"]["user"].get("screen_name", "")
+            elif "core" in tweet and "user_results" in tweet["core"]:
+                user_result = tweet["core"]["user_results"].get("result", {})
+                if "legacy" in user_result:
+                    username = user_result["legacy"].get("screen_name", "")
+            
+            activities.append({
+                "id": tweet.get("id_str", str(tweet.get("_id", ""))),
+                "type": "tweet",
+                "action": "ツイート収集",
+                "message": f"@{username} のツイートを収集しました",
+                "timestamp": tweet.get("scraped_at"),
+                "data": {
+                    "tweet_id": tweet.get("id_str"),
+                    "username": username,
+                    "has_articles": bool(tweet.get("extracted_articles")),
+                    "has_media": bool(tweet.get("downloaded_media"))
+                }
+            })
+        
+        # アクティビティを時系列でソート
+        activities.sort(key=lambda x: x["timestamp"] or datetime.min, reverse=True)
+        
+        # 制限数まで取得
+        activities = activities[:limit]
+        
+        logger.info(f"アクティビティフィードを取得: {len(activities)}件")
+        return activities
+        
+    except Exception as e:
+        logger.error(f"アクティビティフィード取得エラー: {e}")
+        raise HTTPException(status_code=500, detail=f"アクティビティフィード取得に失敗しました: {str(e)}")
 
 
 # ===== エラーハンドラー =====
