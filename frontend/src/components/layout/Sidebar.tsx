@@ -6,6 +6,7 @@ import {
   ChartBarIcon,
   UsersIcon,
   ChatBubbleLeftRightIcon,
+  BriefcaseIcon,
   CogIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
@@ -19,6 +20,7 @@ const navigation = [
   { name: 'ダッシュボード', href: '/dashboard', icon: ChartBarIcon },
   { name: 'ユーザー管理', href: '/users', icon: UsersIcon },
   { name: 'ツイート一覧', href: '/tweets', icon: ChatBubbleLeftRightIcon },
+  { name: 'ジョブ管理', href: '/jobs', icon: BriefcaseIcon },
   { name: '設定', href: '/settings', icon: CogIcon },
 ]
 

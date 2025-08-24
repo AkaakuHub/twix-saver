@@ -262,6 +262,35 @@ async def run_pending_jobs():
     return success_count == len(pending_jobs)
 
 
+async def run_single_job(job_id: str):
+    """指定されたジョブを実行"""
+    logger = setup_logger("single_job_runner")
+    
+    logger.info(f"ジョブ {job_id} を検索しています...")
+    job = job_service.get_job(job_id)
+    
+    if not job:
+        logger.error(f"ジョブが見つかりません: {job_id}")
+        return False
+    
+    if job.status not in [ScrapingJobStatus.PENDING.value, ScrapingJobStatus.FAILED.value, ScrapingJobStatus.STOPPED.value]:
+        logger.error(f"ジョブは実行できません。現在のステータス: {job.status}")
+        return False
+    
+    logger.info(f"ジョブを実行中: {job.job_id}")
+    
+    try:
+        success = await execute_job(job)
+        if success:
+            logger.info(f"ジョブ実行完了: {job.job_id}")
+        else:
+            logger.error(f"ジョブ実行失敗: {job.job_id}")
+        return success
+    except Exception as e:
+        logger.error(f"ジョブ実行中にエラー ({job.job_id}): {e}")
+        return False
+
+
 def main():
     """コマンドライン実行のメイン関数"""
     parser = argparse.ArgumentParser(
@@ -287,6 +316,12 @@ def main():
         '--run-jobs',
         action='store_true',
         help='データベースの待機中ジョブを実行'
+    )
+    
+    parser.add_argument(
+        '--run-single-job',
+        type=str,
+        help='指定されたジョブIDの単一ジョブを実行'
     )
     
     parser.add_argument(
@@ -335,9 +370,14 @@ def main():
         success = asyncio.run(run_pending_jobs())
         sys.exit(0 if success else 1)
     
+    # 単一ジョブを実行
+    if args.run_single_job:
+        success = asyncio.run(run_single_job(args.run_single_job))
+        sys.exit(0 if success else 1)
+    
     # スクレイピング実行（従来方式）
     if not args.users:
-        parser.error("--users または --run-jobs オプションを指定してください")
+        parser.error("--users, --run-jobs, または --run-single-job オプションを指定してください")
     
     # 非同期実行
     success = asyncio.run(

@@ -239,27 +239,25 @@ async def get_job(job_id: str):
 async def create_job(job_data: ScrapingJobCreate, background_tasks: BackgroundTasks):
     """新しいスクレイピングジョブを作成"""
     try:
-        # ターゲットユーザーの存在確認
+        # ターゲットユーザー名の正規化（@マーク除去、空文字チェック）
         valid_users = []
         for username in job_data.target_usernames:
-            user = user_service.get_user(username.lstrip('@').lower())
-            if user:
-                if user.active and user.scraping_enabled:
-                    valid_users.append(username.lstrip('@').lower())
-                else:
-                    logger.warning(f"非アクティブなユーザーをスキップ: {username}")
+            normalized_username = username.lstrip('@').strip().lower()
+            if normalized_username and len(normalized_username) > 0:
+                valid_users.append(normalized_username)
             else:
-                logger.warning(f"存在しないユーザーをスキップ: {username}")
+                logger.warning(f"無効なユーザー名をスキップ: '{username}'")
         
         if not valid_users:
             raise HTTPException(
                 status_code=400, 
-                detail="有効なターゲットユーザーが見つかりません"
+                detail="有効なユーザー名が指定されていません"
             )
         
         # ジョブ作成
         job_id = job_service.create_job(
             target_usernames=valid_users,
+            scraper_account=job_data.scraper_account,
             process_articles=job_data.process_articles,
             max_tweets=job_data.max_tweets
         )
@@ -337,6 +335,117 @@ async def create_job_from_active_users(
     except Exception as e:
         logger.error(f"自動ジョブ作成エラー: {e}")
         raise HTTPException(status_code=500, detail=f"自動ジョブ作成に失敗しました: {str(e)}")
+
+
+@router.post("/{job_id}/run", response_model=SuccessResponse)
+async def run_job_immediately(job_id: str, background_tasks: BackgroundTasks):
+    """指定されたジョブを即座に実行"""
+    try:
+        import subprocess
+        from pathlib import Path
+        
+        # ジョブの存在確認
+        job = job_service.get_job(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="ジョブが見つかりません")
+        
+        # ジョブが実行可能な状態か確認
+        if job.status not in ["pending", "stopped", "failed"]:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"ジョブは実行できません。現在のステータス: {job.status}"
+            )
+        
+        # 現在のプロジェクトディレクトリを取得
+        project_root = Path(__file__).parent.parent.parent.parent
+        backend_path = project_root / "backend"
+        venv_python = backend_path / "venv" / "bin" / "python"
+        main_script = backend_path / "main.py"
+        
+        # バックグラウンドで特定のjobを実行
+        def run_single_job():
+            try:
+                subprocess.run(
+                    [str(venv_python), str(main_script), "--run-single-job", job_id],
+                    cwd=str(backend_path),
+                    check=True
+                )
+                logger.info(f"ジョブ {job_id} の実行が完了しました")
+            except subprocess.CalledProcessError as e:
+                logger.error(f"ジョブ実行プロセスエラー: {e}")
+            except Exception as e:
+                logger.error(f"バックグラウンドジョブ実行エラー: {e}")
+        
+        background_tasks.add_task(run_single_job)
+        
+        logger.info(f"ジョブ {job_id} の即座実行を開始")
+        return SuccessResponse(
+            message=f"ジョブの実行を開始しました",
+            data={
+                "job_id": job_id,
+                "status": "started"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"ジョブ実行エラー: {e}")
+        raise HTTPException(status_code=500, detail=f"ジョブ実行開始に失敗しました: {str(e)}")
+
+
+@router.post("/run-pending", response_model=SuccessResponse)
+async def run_pending_jobs_now(background_tasks: BackgroundTasks):
+    """待機中のジョブを即座に実行"""
+    try:
+        import subprocess
+        import sys
+        from pathlib import Path
+        
+        # 現在のプロジェクトディレクトリを取得
+        project_root = Path(__file__).parent.parent.parent.parent
+        backend_path = project_root / "backend"
+        venv_python = backend_path / "venv" / "bin" / "python"
+        main_script = backend_path / "main.py"
+        
+        # 待機中ジョブをカウント
+        pending_jobs = job_service.get_jobs(status="pending", limit=100)
+        job_count = len(pending_jobs)
+        
+        if job_count == 0:
+            return SuccessResponse(
+                message="実行待ちのジョブはありません",
+                data={"pending_jobs": 0}
+            )
+        
+        # バックグラウンドでjobを実行
+        def run_jobs():
+            try:
+                subprocess.run(
+                    [str(venv_python), str(main_script), "--run-jobs"],
+                    cwd=str(backend_path),
+                    check=True
+                )
+                logger.info(f"待機中ジョブの実行が完了しました")
+            except subprocess.CalledProcessError as e:
+                logger.error(f"ジョブ実行プロセスエラー: {e}")
+            except Exception as e:
+                logger.error(f"バックグラウンドジョブ実行エラー: {e}")
+        
+        background_tasks.add_task(run_jobs)
+        
+        logger.info(f"待機中ジョブの即座実行を開始: {job_count}件")
+        return SuccessResponse(
+            message=f"待機中のジョブ{job_count}件の実行を開始しました",
+            data={
+                "pending_jobs": job_count,
+                "status": "started"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"待機中ジョブ実行エラー: {e}")
+        raise HTTPException(status_code=500, detail=f"ジョブ実行開始に失敗しました: {str(e)}")
 
 
 @router.put("/{job_id}/start", response_model=SuccessResponse)

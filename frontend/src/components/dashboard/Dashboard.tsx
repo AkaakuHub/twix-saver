@@ -52,9 +52,11 @@ export const Dashboard = () => {
             <div className="w-2 h-2 rounded-full bg-green-500" />
             <span className="text-sm text-gray-600">API接続中</span>
           </div>
-          <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => setIsJobModalOpen(true)}>
-            新規ジョブ作成
-          </Button>
+          <div className="flex space-x-2">
+            <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => setIsJobModalOpen(true)}>
+              新規ジョブ作成
+            </Button>
+          </div>
         </div>
       </div>
 

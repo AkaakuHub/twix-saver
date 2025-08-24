@@ -67,6 +67,7 @@ export interface ScrapingJobCreate {
   target_usernames: string[]
   process_articles: boolean
   max_tweets?: number | null
+  scraper_account?: string | null
 }
 
 export interface ScrapingJobResponse {

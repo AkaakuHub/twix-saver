@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card'
 import { Badge } from '../ui/Badge'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
 import type { ScrapingJobCreate } from '../../types/api'
+import { apiClient } from '../../services/api'
 
 interface JobFormProps {
   onSubmit: (jobData: ScrapingJobCreate) => void
@@ -12,17 +13,28 @@ interface JobFormProps {
   isSubmitting?: boolean
 }
 
+interface TwitterAccount {
+  username: string
+  display_name?: string
+  active: boolean
+}
+
 export const JobForm = ({ onSubmit, onCancel, isSubmitting = false }: JobFormProps) => {
   const [targetUsernames, setTargetUsernames] = useState<string[]>([])
   const [usernameInput, setUsernameInput] = useState('')
   const [processArticles, setProcessArticles] = useState(false)
   const [maxTweets, setMaxTweets] = useState<number | undefined>(undefined)
+  const [availableAccounts, setAvailableAccounts] = useState<TwitterAccount[]>([])
+  const [selectedAccount, setSelectedAccount] = useState<string>('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const addUsername = () => {
     const username = usernameInput.trim()
     if (username && !targetUsernames.includes(username)) {
       setTargetUsernames([...targetUsernames, username])
       setUsernameInput('')
+      setError(null) // エラーをクリア
     }
   }
 
@@ -30,21 +42,48 @@ export const JobForm = ({ onSubmit, onCancel, isSubmitting = false }: JobFormPro
     setTargetUsernames(targetUsernames.filter(u => u !== username))
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
       addUsername()
     }
   }
 
+  useEffect(() => {
+    loadAvailableAccounts()
+  }, [])
+
+  const loadAvailableAccounts = async () => {
+    try {
+      setLoading(true)
+      const accounts = await apiClient.get<TwitterAccount[]>('/accounts?available_only=true')
+      setAvailableAccounts(accounts)
+      if (accounts.length === 1) {
+        setSelectedAccount(accounts[0].username)
+      }
+    } catch {
+      setError('アカウント情報の取得に失敗しました')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (targetUsernames.length === 0) return
+    if (targetUsernames.length === 0) {
+      setError('少なくとも1人のターゲットユーザーを指定してください')
+      return
+    }
+    if (!selectedAccount) {
+      setError('スクレイピング用アカウントを選択してください')
+      return
+    }
 
     onSubmit({
       target_usernames: targetUsernames,
       process_articles: processArticles,
       max_tweets: maxTweets || null,
+      scraper_account: selectedAccount,
     })
   }
 
@@ -54,17 +93,60 @@ export const JobForm = ({ onSubmit, onCancel, isSubmitting = false }: JobFormPro
         <CardTitle>新規ジョブ作成</CardTitle>
       </CardHeader>
       <CardContent>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center">
+              <InformationCircleIcon className="w-5 h-5 text-red-400 mr-2" />
+              <span className="text-sm text-red-700">{error}</span>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* スクレイピング用アカウント選択 */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              スクレイピング用Twitterアカウント
+            </label>
+            <select
+              value={selectedAccount}
+              onChange={e => setSelectedAccount(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={loading || availableAccounts.length === 0}
+            >
+              <option value="">アカウントを選択...</option>
+              {availableAccounts.map(account => (
+                <option key={account.username} value={account.username}>
+                  @{account.username}
+                  {account.display_name && ` (${account.display_name})`}
+                </option>
+              ))}
+            </select>
+            {availableAccounts.length === 0 && !loading && (
+              <p className="text-sm text-amber-600">
+                利用可能なアカウントがありません。設定画面でTwitterアカウントを追加してください。
+              </p>
+            )}
+          </div>
+
           {/* ターゲットユーザー */}
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">対象Twitterユーザー</label>
+            <label className="block text-sm font-medium text-gray-700">
+              監視対象ユーザー（第三者のTwitterアカウント）
+            </label>
+            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+              <p className="text-sm text-green-700">
+                任意のTwitterユーザー名を入力してください（例：elonmusk,
+                taylorswift13など）。事前登録は不要です。
+              </p>
+            </div>
             <div className="flex gap-2">
               <Input
                 type="text"
                 placeholder="@username (@ は不要)"
                 value={usernameInput}
                 onChange={e => setUsernameInput(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyDown}
                 className="flex-1"
               />
               <Button type="button" onClick={addUsername} disabled={!usernameInput.trim()}>

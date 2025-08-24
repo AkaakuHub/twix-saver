@@ -94,6 +94,7 @@ class ScrapingJobCreate(BaseModel):
     target_usernames: List[str] = Field(..., min_length=1, description="対象ユーザー名リスト")
     process_articles: bool = Field(True, description="記事抽出を実行するか")
     max_tweets: Optional[int] = Field(None, gt=0, le=1000, description="最大ツイート数")
+    scraper_account: Optional[str] = Field(None, description="使用するスクレイパーアカウント")
 
 
 class ScrapingJobResponse(BaseModel):

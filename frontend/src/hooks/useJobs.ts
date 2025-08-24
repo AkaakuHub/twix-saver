@@ -156,6 +156,60 @@ export const useJobs = () => {
     }
   }
 
+  const runJobMutation = useMutation({
+    mutationFn: async (jobId: string): Promise<void> => {
+      const response = await fetch(`${API_BASE}/jobs/${jobId}/run`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'ジョブ実行の開始に失敗しました')
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.invalidateQueries({ queryKey: ['active-jobs'] })
+      addNotification({
+        type: 'success',
+        title: 'ジョブの実行を開始しました',
+      })
+    },
+    onError: (error: Error) => {
+      addNotification({
+        type: 'error',
+        title: 'ジョブ実行開始エラー',
+        message: error.message,
+      })
+    },
+  })
+
+  const runPendingJobsMutation = useMutation({
+    mutationFn: async (): Promise<void> => {
+      const response = await fetch(`${API_BASE}/jobs/run-pending`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'ジョブ実行の開始に失敗しました')
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.invalidateQueries({ queryKey: ['active-jobs'] })
+      addNotification({
+        type: 'success',
+        title: '待機中ジョブの実行を開始しました',
+      })
+    },
+    onError: (error: Error) => {
+      addNotification({
+        type: 'error',
+        title: 'ジョブ実行開始エラー',
+        message: error.message,
+      })
+    },
+  })
+
   return {
     jobs,
     isLoading,
@@ -165,12 +219,16 @@ export const useJobs = () => {
     cancelJob: cancelJobMutation.mutate,
     startJob: startJobMutation.mutate,
     stopJob: stopJobMutation.mutate,
+    runJob: runJobMutation.mutate,
     startAllJobs,
     stopAllJobs,
+    runPendingJobs: runPendingJobsMutation.mutate,
     isCreating: createJobMutation.isPending,
     isCancelling: cancelJobMutation.isPending,
     isStarting: startJobMutation.isPending,
     isStopping: stopJobMutation.isPending,
+    isRunning: runJobMutation.isPending,
+    isRunningPending: runPendingJobsMutation.isPending,
   }
 }
 
