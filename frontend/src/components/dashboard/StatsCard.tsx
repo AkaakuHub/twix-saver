@@ -90,7 +90,7 @@ export const StatsCard = ({
   const change = calculateChange()
 
   return (
-    <Card className="relative overflow-hidden">
+    <Card className="stats-card relative overflow-hidden">
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-shrink-0">

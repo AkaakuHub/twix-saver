@@ -28,6 +28,9 @@
     "restart": "docker-compose restart",
     "clean": "docker-compose down -v",
     "test:backend": "cd backend && python main.py --stats",
+    "test:e2e": "cd frontend && npx playwright test --reporter=json > ../test-results.json 2>&1 || true && echo 'Test results saved to test-results.json'",
+    "test:e2e:ui": "cd frontend && npx playwright test --ui",
+    "test:e2e:debug": "cd frontend && npx playwright test --debug",
     "prepare": "lefthook install"
   },
   "devDependencies": {

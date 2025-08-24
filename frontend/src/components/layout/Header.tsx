@@ -7,7 +7,7 @@ interface HeaderProps {
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
   return (
-    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
       <Button variant="ghost" size="sm" onClick={onMenuClick} className="lg:hidden">
         <Bars3Icon className="h-6 w-6" />
       </Button>
@@ -26,6 +26,6 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
           </div>
         </div>
       </div>
-    </div>
+    </header>
   )
 }

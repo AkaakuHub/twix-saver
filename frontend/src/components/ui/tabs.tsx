@@ -33,7 +33,7 @@ interface TabsListProps {
 
 export function TabsList({ className, children }: TabsListProps) {
   return (
-    <div className={clsx('flex space-x-1 rounded-md bg-gray-100 p-1', className)}>
+    <div role="tablist" className={clsx('flex space-x-1 rounded-md bg-gray-100 p-1', className)}>
       {children}
     </div>
   )
