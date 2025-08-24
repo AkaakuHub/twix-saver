@@ -58,7 +58,9 @@ export const useTweets = (params: TweetSearchParams = {}) => {
           }
         } catch (error) {
           if (error instanceof TypeError && error.message.includes('fetch')) {
-            throw new Error('バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。')
+            throw new Error(
+              'バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。'
+            )
           }
           throw error
         }
@@ -106,7 +108,9 @@ export const useTweetStats = () => {
         return response.json()
       } catch (error) {
         if (error instanceof TypeError && error.message.includes('fetch')) {
-          throw new Error('バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。')
+          throw new Error(
+            'バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。'
+          )
         }
         throw error
       }

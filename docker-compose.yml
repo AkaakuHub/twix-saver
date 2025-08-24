@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:5.0
+    container_name: twix-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: twitter_scraper
+    volumes:
+      - mongodb_data:/data/db
+      - ./backend/scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - twix-network
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: twix-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://root:password@mongodb:27017/twitter_scraper?authSource=admin
+      - MONGODB_DATABASE=twitter_scraper
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/logs:/app/logs
+      - ./backend/sessions:/app/sessions
+    depends_on:
+      - mongodb
+    networks:
+      - twix-network
+    # 開発時のホットリロード用（オプション）
+    # volumes:
+    #   - ./backend/src:/app/src
+
+volumes:
+  mongodb_data:
+
+networks:
+  twix-network:
+    driver: bridge

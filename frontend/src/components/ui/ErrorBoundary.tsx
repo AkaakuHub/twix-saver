@@ -44,17 +44,11 @@ export class ErrorBoundary extends Component<Props, State> {
                   />
                 </svg>
               </div>
-              <h3 className="mt-4 text-lg font-medium text-gray-900">
-                アプリケーションエラー
-              </h3>
-              <p className="mt-2 text-sm text-gray-500">
-                予期しないエラーが発生しました
-              </p>
+              <h3 className="mt-4 text-lg font-medium text-gray-900">アプリケーションエラー</h3>
+              <p className="mt-2 text-sm text-gray-500">予期しないエラーが発生しました</p>
               {this.state.error && (
                 <div className="mt-4 p-3 bg-gray-100 rounded-md">
-                  <code className="text-xs text-gray-700">
-                    {this.state.error.message}
-                  </code>
+                  <code className="text-xs text-gray-700">{this.state.error.message}</code>
                 </div>
               )}
               <div className="mt-6">

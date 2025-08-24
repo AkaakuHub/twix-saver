@@ -12,7 +12,8 @@ export const ConnectionStatus = () => {
       addNotification({
         type: 'error',
         title: 'バックエンド接続エラー',
-        message: 'バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。',
+        message:
+          'バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。',
         duration: 0,
       })
       setHasShownError(true)
@@ -59,7 +60,7 @@ export const ConnectionStatus = () => {
               </p>
             </div>
           </div>
-          
+
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
             <h4 className="text-sm font-medium text-red-800 mb-2">解決方法:</h4>
             <ul className="text-sm text-red-700 space-y-1">

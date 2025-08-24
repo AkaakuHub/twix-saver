@@ -24,7 +24,9 @@ export const useJobs = () => {
         return response.json()
       } catch (error) {
         if (error instanceof TypeError && error.message.includes('fetch')) {
-          throw new Error('バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。')
+          throw new Error(
+            'バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。'
+          )
         }
         throw error
       }
@@ -111,7 +113,9 @@ export const useActiveJobs = () => {
         return response.json()
       } catch (error) {
         if (error instanceof TypeError && error.message.includes('fetch')) {
-          throw new Error('バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。')
+          throw new Error(
+            'バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。'
+          )
         }
         throw error
       }
@@ -133,7 +137,9 @@ export const useJobStats = () => {
         return response.json()
       } catch (error) {
         if (error instanceof TypeError && error.message.includes('fetch')) {
-          throw new Error('バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。')
+          throw new Error(
+            'バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。'
+          )
         }
         throw error
       }

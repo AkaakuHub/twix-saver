@@ -4,7 +4,7 @@ CRUD操作と統計情報を提供
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Path, Depends
 from pymongo.errors import PyMongoError
 
 from src.web.models import (
@@ -278,7 +278,7 @@ async def get_user_statistics():
 
 
 @router.get("/priority/{min_priority}", response_model=List[TargetUserResponse])
-async def get_users_by_priority(min_priority: int = Query(..., ge=1, le=4)):
+async def get_users_by_priority(min_priority: int = Path(..., ge=1, le=4)):
     """指定優先度以上のユーザーを取得"""
     try:
         users = user_service.get_users_by_priority(min_priority)

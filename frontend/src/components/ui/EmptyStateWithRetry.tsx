@@ -18,12 +18,7 @@ export const EmptyStateWithRetry = ({
   icon,
 }: EmptyStateWithRetryProps) => {
   const defaultIcon = (
-    <svg
-      className="h-12 w-12 text-gray-400"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
+    <svg className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -40,9 +35,7 @@ export const EmptyStateWithRetry = ({
       </div>
       <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
       <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">{message}</p>
-      {showRetry && onRetry && (
-        <RetryButton onRetry={onRetry} isLoading={isLoading} />
-      )}
+      {showRetry && onRetry && <RetryButton onRetry={onRetry} isLoading={isLoading} />}
     </div>
   )
 }

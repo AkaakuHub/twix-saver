@@ -52,7 +52,21 @@ twix-saver/
 
 ## ⚡ クイックスタート
 
-### 1. 一括セットアップ（推奨）
+### 1. Docker Compose（推奨）
+
+```bash
+# 環境変数ファイルを作成
+cp backend/.env.example backend/.env
+# .envファイルを編集してTwitter認証情報を設定
+
+# Docker Composeで全サービスを起動
+docker-compose up -d
+
+# ログ確認
+docker-compose logs -f backend
+```
+
+### 2. 従来の開発環境セットアップ
 
 ```bash
 # ルートディレクトリで依存関係をまとめてインストール
@@ -67,7 +81,7 @@ cp .env.example .env
 mongosh --eval "db.runCommand({ping: 1})"
 ```
 
-### 2. 開発サーバー起動
+### 3. 開発サーバー起動（従来方式）
 
 ```bash
 # Terminal 1: バックエンドAPI
