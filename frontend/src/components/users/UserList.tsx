@@ -8,6 +8,7 @@ import { UserBulkActions } from './UserBulkActions'
 import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
+import { EmptyStateWithRetry } from '../ui/EmptyStateWithRetry'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import type { TargetUserResponse, TargetUserCreate, TargetUserUpdate } from '../../types/api'
 import type { UserFormData } from './UserForm'
@@ -16,7 +17,7 @@ export const UserList = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<TargetUserResponse | null>(null)
 
-  const { users, isLoading, createUser, updateUser, deleteUser } = useUsers()
+  const { users, isLoading, error, refetch, createUser, updateUser, deleteUser } = useUsers()
   const { selectedUsers, filters } = useUserStore()
 
   if (isLoading) {
@@ -24,6 +25,21 @@ export const UserList = () => {
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size="lg" text="ユーザー一覧を読み込み中..." />
       </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <EmptyStateWithRetry
+        title="データの読み込みに失敗しました"
+        message={error.message}
+        onRetry={refetch}
+        icon={
+          <svg className="h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+        }
+      />
     )
   }
 

@@ -35,25 +35,32 @@ export const useTweets = (params: TweetSearchParams = {}) => {
     useInfiniteQuery({
       queryKey: ['tweets', params],
       queryFn: async ({ pageParam = 1 }) => {
-        const queryParams = buildQueryParams(pageParam as number)
-        const response = await fetch(`${API_BASE}/tweets?${queryParams.toString()}`)
+        try {
+          const queryParams = buildQueryParams(pageParam as number)
+          const response = await fetch(`${API_BASE}/tweets?${queryParams.toString()}`)
 
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`ツイートデータの取得に失敗しました: ${errorText}`)
-        }
+          if (!response.ok) {
+            const errorText = await response.text()
+            throw new Error(`ツイートデータの取得に失敗しました: ${errorText}`)
+          }
 
-        const result = (await response.json()) as {
-          tweets?: TweetResponse[]
-          data?: TweetResponse[]
-          total?: number
-          has_more?: boolean
-        }
-        return {
-          tweets: result.tweets || result.data || [],
-          total: result.total || 0,
-          page: pageParam as number,
-          hasMore: result.has_more || false,
+          const result = (await response.json()) as {
+            tweets?: TweetResponse[]
+            data?: TweetResponse[]
+            total?: number
+            has_more?: boolean
+          }
+          return {
+            tweets: result.tweets || result.data || [],
+            total: result.total || 0,
+            page: pageParam as number,
+            hasMore: result.has_more || false,
+          }
+        } catch (error) {
+          if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new Error('バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。')
+          }
+          throw error
         }
       },
       getNextPageParam: lastPage => {
@@ -91,11 +98,18 @@ export const useTweetStats = () => {
   return useQuery({
     queryKey: ['tweet-stats'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE}/tweets/stats`)
-      if (!response.ok) {
-        throw new Error('ツイート統計の取得に失敗しました')
+      try {
+        const response = await fetch(`${API_BASE}/tweets/stats`)
+        if (!response.ok) {
+          throw new Error('ツイート統計の取得に失敗しました')
+        }
+        return response.json()
+      } catch (error) {
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          throw new Error('バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。')
+        }
+        throw error
       }
-      return response.json()
     },
     staleTime: 1000 * 60 * 5, // 5分
     refetchInterval: 1000 * 60, // 1分毎に自動更新

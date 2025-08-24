@@ -16,11 +16,18 @@ export const useUsers = () => {
   } = useQuery({
     queryKey: ['users'],
     queryFn: async (): Promise<TargetUserResponse[]> => {
-      const response = await fetch(`${API_BASE}/users`)
-      if (!response.ok) {
-        throw new Error('ユーザー一覧の取得に失敗しました')
+      try {
+        const response = await fetch(`${API_BASE}/users`)
+        if (!response.ok) {
+          throw new Error('ユーザー一覧の取得に失敗しました')
+        }
+        return response.json()
+      } catch (error) {
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          throw new Error('バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。')
+        }
+        throw error
       }
-      return response.json()
     },
     staleTime: 1000 * 60 * 5, // 5分
   })

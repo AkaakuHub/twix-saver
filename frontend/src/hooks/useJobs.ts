@@ -16,11 +16,18 @@ export const useJobs = () => {
   } = useQuery({
     queryKey: ['jobs'],
     queryFn: async (): Promise<ScrapingJobResponse[]> => {
-      const response = await fetch(`${API_BASE}/jobs`)
-      if (!response.ok) {
-        throw new Error('ジョブ一覧の取得に失敗しました')
+      try {
+        const response = await fetch(`${API_BASE}/jobs`)
+        if (!response.ok) {
+          throw new Error('ジョブ一覧の取得に失敗しました')
+        }
+        return response.json()
+      } catch (error) {
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          throw new Error('バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。')
+        }
+        throw error
       }
-      return response.json()
     },
     staleTime: 1000 * 30, // 30秒
     refetchInterval: 1000 * 10, // 10秒毎に自動更新
@@ -96,11 +103,18 @@ export const useActiveJobs = () => {
   return useQuery({
     queryKey: ['active-jobs'],
     queryFn: async (): Promise<ScrapingJobResponse[]> => {
-      const response = await fetch(`${API_BASE}/jobs/active`)
-      if (!response.ok) {
-        throw new Error('アクティブジョブの取得に失敗しました')
+      try {
+        const response = await fetch(`${API_BASE}/jobs/active`)
+        if (!response.ok) {
+          throw new Error('アクティブジョブの取得に失敗しました')
+        }
+        return response.json()
+      } catch (error) {
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          throw new Error('バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。')
+        }
+        throw error
       }
-      return response.json()
     },
     staleTime: 1000 * 10, // 10秒
     refetchInterval: 1000 * 5, // 5秒毎に自動更新
@@ -111,11 +125,18 @@ export const useJobStats = () => {
   return useQuery({
     queryKey: ['job-stats'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE}/jobs/stats`)
-      if (!response.ok) {
-        throw new Error('ジョブ統計の取得に失敗しました')
+      try {
+        const response = await fetch(`${API_BASE}/jobs/stats`)
+        if (!response.ok) {
+          throw new Error('ジョブ統計の取得に失敗しました')
+        }
+        return response.json()
+      } catch (error) {
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          throw new Error('バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。')
+        }
+        throw error
       }
-      return response.json()
     },
     staleTime: 1000 * 60, // 1分
     refetchInterval: 1000 * 30, // 30秒毎に自動更新

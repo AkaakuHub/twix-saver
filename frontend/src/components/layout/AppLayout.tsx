@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
+import { ConnectionStatus } from '../ui/ConnectionStatus'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -11,6 +12,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ConnectionStatus />
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
 
       <div className="lg:pl-64">
