@@ -23,7 +23,7 @@ from src.utils.article_extractor import content_processor
 from src.utils.logger import setup_logger, log_scraping_stats
 from src.services.job_service import job_service
 from src.models.database import ScrapingJob, ScrapingJobStatus, ScrapingJobStats
-from src.web.routers.websocket import manager as ws_manager
+# WebSocket廃止済み
 
 
 async def execute_job(job: ScrapingJob) -> bool:
@@ -37,11 +37,7 @@ async def execute_job(job: ScrapingJob) -> bool:
             logger.error(f"ジョブの開始に失敗: {job_id}")
             return False
         
-        # WebSocket通知
-        await ws_manager.broadcast_job_update(job_id, "running", {
-            "target_users": job.target_usernames,
-            "started_at": job.started_at.isoformat() if job.started_at else None
-        })
+        # WebSocket廃止済み
         
         logger.info(f"ジョブを実行開始: {job_id} (ターゲット: {', '.join(job.target_usernames)})")
         
@@ -49,7 +45,7 @@ async def execute_job(job: ScrapingJob) -> bool:
         if not settings.has_accounts:
             error_msg = "Twitterアカウントが設定されていません。.envファイルを確認してください。"
             job_service.fail_job(job_id, error_msg)
-            await ws_manager.broadcast_job_update(job_id, "failed", {"error": error_msg})
+            # WebSocket廃止済み
             return False
         
         start_time = time.time()
@@ -64,10 +60,7 @@ async def execute_job(job: ScrapingJob) -> bool:
         
         # 進捗ログ
         job_service.add_job_log(job_id, f"スクレイピング完了: {total_tweets}件のツイートを取得")
-        await ws_manager.broadcast_job_update(job_id, "running", {
-            "tweets_collected": total_tweets,
-            "progress": 50
-        })
+        # WebSocket廃止済み
         
         if total_tweets == 0:
             logger.warning(f"ジョブ {job_id}: 取得できたツイートがありません")
@@ -76,7 +69,7 @@ async def execute_job(job: ScrapingJob) -> bool:
         # 記事コンテンツの処理
         if job.process_articles and total_tweets > 0:
             job_service.add_job_log(job_id, "リンク先記事の処理を開始")
-            await ws_manager.broadcast_log("info", f"ジョブ {job_id}: 記事処理開始")
+            # WebSocket廃止済み
             
             articles_count = 0
             for username, tweets in results.items():
@@ -105,10 +98,7 @@ async def execute_job(job: ScrapingJob) -> bool:
             job_service.add_job_log(job_id, f"記事処理完了: {articles_count}件")
         
         # 進捗更新
-        await ws_manager.broadcast_job_update(job_id, "running", {
-            "articles_extracted": stats.articles_extracted,
-            "progress": 80
-        })
+        # WebSocket廃止済み
         
         # データインジェスト実行
         logger.info(f"ジョブ {job_id}: データインジェストを実行")
@@ -127,17 +117,7 @@ async def execute_job(job: ScrapingJob) -> bool:
         # ジョブ完了
         job_service.complete_job(job_id, stats)
         
-        # WebSocket通知
-        await ws_manager.broadcast_job_update(job_id, "completed", {
-            "tweets_collected": stats.tweets_collected,
-            "articles_extracted": stats.articles_extracted,
-            "media_downloaded": stats.media_downloaded,
-            "processing_time": session_duration,
-            "progress": 100
-        })
-        
-        # システム統計をブロードキャスト
-        await ws_manager.broadcast_system_stats()
+        # WebSocket廃止済み
         
         logger.info(f"ジョブが正常に完了: {job_id}")
         log_scraping_stats(total_tweets, 0, session_duration)
@@ -148,10 +128,7 @@ async def execute_job(job: ScrapingJob) -> bool:
         logger.error(f"ジョブ実行エラー ({job_id}): {e}")
         job_service.fail_job(job_id, str(e))
         
-        # WebSocket通知
-        await ws_manager.broadcast_job_update(job_id, "failed", {
-            "error": str(e)
-        })
+        # WebSocket廃止済み
         
         return False
 
@@ -273,7 +250,7 @@ async def run_single_job(job_id: str):
         logger.error(f"ジョブが見つかりません: {job_id}")
         return False
     
-    if job.status not in [ScrapingJobStatus.PENDING.value, ScrapingJobStatus.FAILED.value, ScrapingJobStatus.STOPPED.value]:
+    if job.status not in [ScrapingJobStatus.PENDING.value, ScrapingJobStatus.FAILED.value, ScrapingJobStatus.CANCELLED.value, ScrapingJobStatus.RUNNING.value]:
         logger.error(f"ジョブは実行できません。現在のステータス: {job.status}")
         return False
     

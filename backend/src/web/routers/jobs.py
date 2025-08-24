@@ -350,7 +350,7 @@ async def run_job_immediately(job_id: str, background_tasks: BackgroundTasks):
             raise HTTPException(status_code=404, detail="ジョブが見つかりません")
         
         # ジョブが実行可能な状態か確認
-        if job.status not in ["pending", "stopped", "failed"]:
+        if job.status not in ["pending", "stopped", "failed", "cancelled", "completed"]:
             raise HTTPException(
                 status_code=400, 
                 detail=f"ジョブは実行できません。現在のステータス: {job.status}"
@@ -478,6 +478,38 @@ async def start_job(job_id: str):
     except Exception as e:
         logger.error(f"ジョブ開始エラー ({job_id}): {e}")
         raise HTTPException(status_code=500, detail=f"ジョブ開始に失敗しました: {str(e)}")
+
+
+@router.put("/{job_id}/stop", response_model=SuccessResponse)
+async def stop_job(job_id: str):
+    """ジョブを停止"""
+    try:
+        job = job_service.get_job(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail=f"ジョブが見つかりません: {job_id}")
+        
+        if job.status not in ["running", "pending"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"ジョブは停止できません。現在のステータス: {job.status}"
+            )
+        
+        success = job_service.cancel_job(job_id)
+        
+        if success:
+            logger.info(f"ジョブを停止: {job_id}")
+            return SuccessResponse(
+                message=f"ジョブを停止しました",
+                data={"job_id": job_id, "status": "cancelled"}
+            )
+        else:
+            raise HTTPException(status_code=400, detail="ジョブの停止に失敗しました")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"ジョブ停止エラー ({job_id}): {e}")
+        raise HTTPException(status_code=500, detail=f"ジョブ停止に失敗しました: {str(e)}")
 
 
 @router.put("/{job_id}/fail", response_model=SuccessResponse)

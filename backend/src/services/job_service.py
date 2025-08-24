@@ -243,6 +243,36 @@ class JobService:
             self.logger.error(f"ジョブ失敗更新エラー ({job_id}): {e}")
             return False
     
+    def cancel_job(self, job_id: str) -> bool:
+        """ジョブをキャンセル状態に更新"""
+        try:
+            cancel_log = (f"[{datetime.utcnow().strftime('%H:%M:%S')}] "
+                         f"ジョブがキャンセルされました")
+            
+            result = self.collection.update_one(
+                {"job_id": job_id},
+                {
+                    "$set": {
+                        "status": ScrapingJobStatus.CANCELLED.value,
+                        "completed_at": datetime.utcnow()
+                    },
+                    "$push": {
+                        "logs": cancel_log
+                    }
+                }
+            )
+            
+            if result.matched_count > 0:
+                self.logger.info(f"ジョブをキャンセル: {job_id}")
+                return True
+            else:
+                self.logger.warning(f"キャンセル対象ジョブが見つかりません: {job_id}")
+                return False
+                
+        except PyMongoError as e:
+            self.logger.error(f"ジョブキャンセルエラー ({job_id}): {e}")
+            return False
+    
     def add_job_log(self, job_id: str, message: str) -> bool:
         """ジョブにログメッセージを追加"""
         try:

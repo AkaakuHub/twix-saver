@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Set
 from urllib.parse import urlparse
 
 from playwright.async_api import async_playwright, BrowserContext, Page, Response
-from playwright_stealth import stealth_async
+from playwright_stealth import stealth
 
 from src.config.settings import settings
 from src.models.database import TwitterAccount
@@ -109,7 +109,7 @@ class TwitterScraper:
         
         # ステルス機能の適用
         if settings.anti_detection.use_stealth:
-            await stealth_async(self.page)
+            await stealth(self.page)
             self.logger.info("ステルス機能を適用しました")
         
         # ネットワーク傍受の設定
