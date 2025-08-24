@@ -1,0 +1,70 @@
+name: Type Sync Check
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/web/models.py'
+      - 'web-ui/src/types/api.ts'
+      - 'lefthook.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/web/models.py'
+      - 'web-ui/src/types/api.ts'
+      - 'lefthook.yml'
+
+jobs:
+  type-sync-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: latest
+        
+    - name: Install Node.js dependencies
+      run: |
+        cd web-ui
+        pnpm install
+        
+    - name: Generate TypeScript types
+      run: |
+        python scripts/simple-generate.py
+        
+    - name: Check type synchronization
+      run: |
+        python scripts/check-type-sync.py
+        
+    - name: TypeScript type check
+      run: |
+        cd web-ui
+        pnpm type-check
+        
+    - name: Upload generated types as artifact
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: generated-types
+        path: |
+          web-ui/src/types/api.generated.ts
+          web-ui/src/types/backups/

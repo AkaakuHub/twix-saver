@@ -1,0 +1,47 @@
+pre-commit:
+  parallel: true
+  commands:
+    type-sync:
+      glob: "backend/src/web/models.py"
+      run: |
+        echo "🔄 Pydanticモデル変更検知 - TypeScript型定義自動生成中..."
+        cd backend && python3 scripts/simple-generate.py
+        git add frontend/src/types/api.ts
+        echo "✅ TypeScript型定義を更新してコミットに追加"
+    
+    frontend-format:
+      root: "frontend/"
+      glob: "src/**/*.{ts,tsx,json}"
+      run: pnpm run format
+      stage_fixed: true
+    
+    frontend-lint:
+      root: "frontend/"
+      glob: "src/**/*.{ts,tsx}"
+      run: pnpm run lint -- --fix
+      stage_fixed: true
+    
+    ts-check:
+      root: "frontend/"
+      glob: "src/**/*.{ts,tsx}"
+      run: pnpm run type-check
+
+pre-push:
+  commands:
+    type-sync-check:
+      run: pnpm run check-types-sync
+    
+    frontend-format-check:
+      root: "frontend/"
+      run: pnpm run format:check
+    
+    frontend-lint-check:
+      root: "frontend/"
+      run: pnpm run lint
+    
+    frontend-type-check:
+      root: "frontend/"
+      run: pnpm run type-check
+    
+    build-test:
+      run: pnpm run build:frontend

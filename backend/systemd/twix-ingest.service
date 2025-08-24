@@ -1,0 +1,42 @@
+[Unit]
+Description=Twix Saver - データインジェストサービス
+After=network.target
+Wants=mongodb.service
+
+[Service]
+Type=oneshot
+User=your-user
+Group=your-group
+WorkingDirectory=/path/to/project/backend
+
+# 環境変数の設定
+Environment="PATH=/path/to/project/venv/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=-/path/to/project/backend/.env
+
+# データインジェストのみ実行
+ExecStart=/path/to/project/venv/bin/python /path/to/project/backend/main.py --ingest-only
+
+# ログ設定
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=twix-ingest
+
+# リソース制限
+MemoryMax=1G
+CPUQuota=25%
+
+# 障害時の対応
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+# セキュリティ設定
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/path/to/project/backend/data /path/to/project/backend/logs
+
+[Install]
+WantedBy=default.target

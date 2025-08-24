@@ -1,0 +1,23 @@
+[Unit]
+Description=Twix Saver Pydanticモデルファイル変更監視
+After=network.target
+
+[Service]
+Type=simple
+User=your-user
+Group=your-group
+WorkingDirectory=/path/to/project/backend
+ExecStart=/path/to/project/venv/bin/python scripts/watch-models.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# プロセスが正常に起動するまでの猶予時間
+TimeoutStartSec=30
+
+# プロセス終了時の猶予時間
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

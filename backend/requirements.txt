@@ -1,0 +1,20 @@
+playwright==1.54.0
+playwright-stealth==2.0.0
+pymongo==4.14.1
+readability-lxml==0.8.4.1
+python-dotenv==1.1.1
+requests==2.32.5
+fake-useragent==2.2.0
+
+# Web API Framework
+fastapi==0.115.2
+uvicorn[standard]==0.31.1
+websockets==13.1
+python-multipart==0.0.12
+jinja2==3.1.4
+
+# CORS and Security
+python-cors==1.7.0
+
+# Type Generation Tools
+pydantic-to-typescript>=2.0.0

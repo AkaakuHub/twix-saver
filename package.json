@@ -1,0 +1,45 @@
+{
+  "name": "twix-saver",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "dev:frontend": "cd frontend && pnpm run dev",
+    "dev:backend": "cd backend && source venv/bin/activate && uvicorn src.web.app:app --reload --host 0.0.0.0 --port 8000",
+    "build:frontend": "cd frontend && pnpm run build",
+    "install:frontend": "cd frontend && pnpm install",
+    "install:backend": "cd backend && pip install -r requirements.txt",
+    "generate-types": "cd backend && python3 scripts/generate-types.py",
+    "check-types-sync": "cd backend && python3 scripts/check-type-sync.py",
+    "setup": "pnpm run install:frontend && pnpm run install:backend && pnpm run generate-types",
+    "lint:frontend": "cd frontend && pnpm run lint",
+    "type-check:frontend": "cd frontend && pnpm run type-check",
+    "test:backend": "cd backend && python main.py --stats",
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "lefthook": "^1.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "keywords": [
+    "twitter",
+    "scraping",
+    "x.com",
+    "playwright",
+    "fastapi",
+    "react",
+    "mongodb"
+  ],
+  "author": "Twix Saver Development Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/twix-saver.git"
+  }
+}

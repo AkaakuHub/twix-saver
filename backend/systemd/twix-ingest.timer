@@ -1,0 +1,19 @@
+[Unit]
+Description=Twix Saver データインジェストタイマー
+Requires=twix-ingest.service
+
+[Timer]
+# 5分間隔でデータインジェストを実行
+OnCalendar=*:0/5
+
+# ランダム遅延（最大30秒）
+RandomizedDelaySec=30
+
+# システム起動時に実行時刻を逃した場合、起動後に実行
+Persistent=true
+
+# タイマーの精度
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

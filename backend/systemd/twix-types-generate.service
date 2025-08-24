@@ -1,0 +1,15 @@
+[Unit]
+Description=Twix Saver TypeScript型定義自動生成
+After=network.target
+
+[Service]
+Type=oneshot
+User=your-user
+Group=your-group
+WorkingDirectory=/path/to/project/backend
+ExecStart=/path/to/project/venv/bin/python scripts/generate-types.py
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=Twix Saver TypeScript型定義自動生成タイマー
+Requires=twix-types-generate.service
+
+[Timer]
+# Pydanticモデルの変更を検知して実行 (実際にはファイル変更監視を使用)
+OnCalendar=*:0/30
+RandomizedDelaySec=60
+Persistent=true
+
+[Install]
+WantedBy=timers.target
