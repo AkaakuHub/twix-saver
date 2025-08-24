@@ -31,7 +31,9 @@ class ApiClient {
         //   config.headers.Authorization = `Bearer ${token}`;
         // }
 
-        console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`)
+        if (import.meta.env.DEV) {
+          console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`)
+        }
         return config
       },
       error => Promise.reject(error)
@@ -40,14 +42,18 @@ class ApiClient {
     // レスポンスインターセプター
     this.client.interceptors.response.use(
       (response: AxiosResponse) => {
-        console.log(`✅ API Response: ${response.status} ${response.config.url}`)
+        if (import.meta.env.DEV) {
+          console.log(`✅ API Response: ${response.status} ${response.config.url}`)
+        }
         return response
       },
       (error: AxiosError) => {
-        console.error(
-          `❌ API Error: ${error.response?.status} ${error.config?.url}`,
-          error.response?.data
-        )
+        if (import.meta.env.DEV) {
+          console.error(
+            `❌ API Error: ${error.response?.status} ${error.config?.url}`,
+            error.response?.data
+          )
+        }
         return this.handleApiError(error)
       }
     )

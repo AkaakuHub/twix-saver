@@ -1,4 +1,4 @@
-import { useActiveJobs, useJobStats } from '../../hooks/useJobs'
+import { useActiveJobs, useJobStats, useJobs } from '../../hooks/useJobs'
 import { useTweetStats } from '../../hooks/useTweets'
 import { useUsers } from '../../hooks/useUsers'
 import type { ScrapingJobResponse } from '../../types/api'
@@ -9,13 +9,18 @@ import { JobSuccessRateChart } from './charts/JobSuccessRateChart'
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
 import { Button } from '../ui/Button'
+import { Modal } from '../ui/Modal'
+import { JobForm } from '../jobs/JobForm'
 import { PlusIcon, PlayIcon, StopIcon } from '@heroicons/react/24/outline'
+import { useState } from 'react'
 
 export const Dashboard = () => {
   const { users = [], isLoading: usersLoading } = useUsers()
   const { data: activeJobs = [], isLoading: activeJobsLoading } = useActiveJobs()
   const { data: jobStats, isLoading: jobStatsLoading } = useJobStats()
   const { data: tweetStats, isLoading: tweetStatsLoading } = useTweetStats()
+  const { createJob, isCreating, startAllJobs, stopAllJobs, isStarting, isStopping } = useJobs()
+  const [isJobModalOpen, setIsJobModalOpen] = useState(false)
 
   const calculateSuccessRate = () => {
     if (!jobStats || typeof jobStats !== 'object') return 0
@@ -47,7 +52,9 @@ export const Dashboard = () => {
             <div className="w-2 h-2 rounded-full bg-green-500" />
             <span className="text-sm text-gray-600">API接続中</span>
           </div>
-          <Button icon={<PlusIcon className="w-4 h-4" />}>新規ジョブ作成</Button>
+          <Button icon={<PlusIcon className="w-4 h-4" />} onClick={() => setIsJobModalOpen(true)}>
+            新規ジョブ作成
+          </Button>
         </div>
       </div>
 
@@ -112,10 +119,24 @@ export const Dashboard = () => {
             <div className="flex items-center justify-between">
               <CardTitle>実行中ジョブ</CardTitle>
               <div className="flex space-x-2">
-                <Button variant="outline" size="sm" icon={<PlayIcon className="w-4 h-4" />}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<PlayIcon className="w-4 h-4" />}
+                  onClick={startAllJobs}
+                  loading={isStarting}
+                  disabled={isStarting || isStopping}
+                >
                   全開始
                 </Button>
-                <Button variant="outline" size="sm" icon={<StopIcon className="w-4 h-4" />}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<StopIcon className="w-4 h-4" />}
+                  onClick={stopAllJobs}
+                  loading={isStopping}
+                  disabled={isStarting || isStopping}
+                >
                   全停止
                 </Button>
               </div>
@@ -156,6 +177,18 @@ export const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* ジョブ作成モーダル */}
+      <Modal isOpen={isJobModalOpen} onClose={() => setIsJobModalOpen(false)} size="2xl">
+        <JobForm
+          onSubmit={jobData => {
+            createJob(jobData)
+            setIsJobModalOpen(false)
+          }}
+          onCancel={() => setIsJobModalOpen(false)}
+          isSubmitting={isCreating}
+        />
+      </Modal>
     </div>
   )
 }

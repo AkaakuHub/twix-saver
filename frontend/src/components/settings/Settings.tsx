@@ -97,22 +97,7 @@ export function Settings() {
       setLoading(true)
       const response = await api.get('/settings')
 
-      // api.get()は直接dataを返すため、responseにデータが入っている
-      console.log('=== APIレスポンス詳細 ===')
-      console.log('response:', response)
-      console.log('response type:', typeof response)
-      console.log('response keys:', response ? Object.keys(response) : 'undefined')
-
-      if (response && typeof response === 'object' && 'proxy' in response) {
-        const responseData = response as Record<string, Record<string, unknown>>
-        console.log('proxy exists:', responseData.proxy)
-        console.log('proxy keys:', Object.keys(responseData.proxy))
-      } else {
-        console.log('proxy does not exist in response')
-      }
-
       const mergedSettings = mergeSettings(response)
-      console.log('mergedSettings:', mergedSettings)
       setSettings(mergedSettings)
     } catch {
       setMessage({ type: 'error', text: '設定の読み込みに失敗しました' })
@@ -125,8 +110,8 @@ export function Settings() {
     try {
       const response = await api.get('/accounts')
       setTwitterAccounts(response as TwitterAccount[])
-    } catch (error) {
-      console.error('Twitterアカウント読み込みエラー:', error)
+    } catch {
+      // Twitterアカウント読み込みエラーは無視
     }
   }
 

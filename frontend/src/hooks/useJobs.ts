@@ -75,6 +75,7 @@ export const useJobs = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.invalidateQueries({ queryKey: ['active-jobs'] })
       addNotification({
         type: 'info',
         title: 'ジョブをキャンセルしました',
@@ -89,6 +90,72 @@ export const useJobs = () => {
     },
   })
 
+  const startJobMutation = useMutation({
+    mutationFn: async (jobId: string): Promise<void> => {
+      const response = await fetch(`${API_BASE}/jobs/${jobId}/start`, {
+        method: 'PUT',
+      })
+      if (!response.ok) {
+        throw new Error('ジョブの開始に失敗しました')
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.invalidateQueries({ queryKey: ['active-jobs'] })
+      addNotification({
+        type: 'success',
+        title: 'ジョブを開始しました',
+      })
+    },
+    onError: (error: Error) => {
+      addNotification({
+        type: 'error',
+        title: 'ジョブ開始エラー',
+        message: error.message,
+      })
+    },
+  })
+
+  const stopJobMutation = useMutation({
+    mutationFn: async (jobId: string): Promise<void> => {
+      const response = await fetch(`${API_BASE}/jobs/${jobId}/stop`, {
+        method: 'PUT',
+      })
+      if (!response.ok) {
+        throw new Error('ジョブの停止に失敗しました')
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.invalidateQueries({ queryKey: ['active-jobs'] })
+      addNotification({
+        type: 'info',
+        title: 'ジョブを停止しました',
+      })
+    },
+    onError: (error: Error) => {
+      addNotification({
+        type: 'error',
+        title: 'ジョブ停止エラー',
+        message: error.message,
+      })
+    },
+  })
+
+  const startAllJobs = async () => {
+    const runningJobs = jobs.filter(job => job.status === 'pending' || job.status === 'stopped')
+    for (const job of runningJobs) {
+      startJobMutation.mutate(job.job_id)
+    }
+  }
+
+  const stopAllJobs = async () => {
+    const activeJobs = jobs.filter(job => job.status === 'running' || job.status === 'processing')
+    for (const job of activeJobs) {
+      stopJobMutation.mutate(job.job_id)
+    }
+  }
+
   return {
     jobs,
     isLoading,
@@ -96,8 +163,14 @@ export const useJobs = () => {
     refetch,
     createJob: createJobMutation.mutate,
     cancelJob: cancelJobMutation.mutate,
+    startJob: startJobMutation.mutate,
+    stopJob: stopJobMutation.mutate,
+    startAllJobs,
+    stopAllJobs,
     isCreating: createJobMutation.isPending,
     isCancelling: cancelJobMutation.isPending,
+    isStarting: startJobMutation.isPending,
+    isStopping: stopJobMutation.isPending,
   }
 }
 
