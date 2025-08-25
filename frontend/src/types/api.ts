@@ -108,6 +108,7 @@ export interface TargetUserCreate {
   display_name?: string | null
   priority: number
   active: boolean
+  scraping_interval_minutes: number
   max_tweets_per_session?: number | null
 }
 
@@ -124,8 +125,8 @@ export interface TargetUserResponse {
   total_articles: number
   last_error?: string | null
   scraping_enabled: boolean
+  scraping_interval_minutes: number
   max_tweets_per_session?: number | null
-  custom_schedule?: string | null
   profile_image_url?: string | null
   follower_count?: number | null
   verified?: boolean | null
@@ -136,8 +137,8 @@ export interface TargetUserUpdate {
   priority?: number | null
   active?: boolean | null
   scraping_enabled?: boolean | null
+  scraping_interval_minutes?: number | null
   max_tweets_per_session?: number | null
-  custom_schedule?: string | null
 }
 
 export interface TweetResponse {

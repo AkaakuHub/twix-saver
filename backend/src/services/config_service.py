@@ -129,11 +129,7 @@ class ConfigService:
             logger.error(f"設定リセットエラー: {e}")
             return False
 
-    # 便利メソッド: よく使う設定へのアクセサー
-    def get_scraping_interval(self) -> int:
-        """スクレイピング間隔を取得"""
-        return self.get_config("scraping_interval_minutes", 15)
-
+    # 便利メソッド: よく使う設定へのアクセサー（グローバル実行間隔は削除済み）
     def get_max_tweets_per_session(self) -> int:
         """セッションあたり最大ツイート数を取得"""
         return self.get_config("max_tweets_per_session", 100)

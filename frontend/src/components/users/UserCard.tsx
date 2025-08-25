@@ -87,10 +87,16 @@ export const UserCard = ({ user, onEdit, onDelete }: UserCardProps) => {
           <div className="mb-3">{getPriorityBadge(user.priority)}</div>
 
           {/* 統計情報 */}
-          <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+          <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
             <div>
               <span className="text-gray-500">収集数</span>
               <div className="font-medium">{user.total_tweets || 0}件</div>
+            </div>
+            <div>
+              <span className="text-gray-500">実行間隔</span>
+              <div className="font-medium">
+                {user.scraping_interval_minutes ? `${user.scraping_interval_minutes}分` : '未設定'}
+              </div>
             </div>
             <div>
               <span className="text-gray-500">最終実行</span>

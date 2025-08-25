@@ -10,7 +10,6 @@ export interface ProxyConfig {
 }
 
 export interface ScrapingConfig {
-  interval_minutes: number
   random_delay_max_seconds: number
   max_tweets_per_session: number
   headless: boolean

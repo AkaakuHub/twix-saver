@@ -268,9 +268,119 @@ def show_stats():
         return False
 
 
+def migrate_user_data():
+    """ユーザーデータのマイグレーション実行"""
+    logger = setup_logger("migration")
+
+    from src.services.user_service import user_service
+
+    logger.info("ユーザーデータマイグレーションを開始します...")
+
+    try:
+        result = user_service.migrate_scraping_interval()
+
+        if result.get("error"):
+            logger.error("マイグレーションエラー: %s", result["error"])
+            return False
+
+        print("\n=== マイグレーション完了 ===")
+        print(f"対象ユーザー数: {result['total']}")
+        print(f"マイグレーション成功: {result['migrated']}")
+        print("全ユーザーにscraping_interval_minutesフィールドが設定されました\n")
+
+        return result["migrated"] >= 0  # 0件でも成功とみなす
+
+    except Exception as e:
+        logger.error("マイグレーション実行エラー: %s", e)
+        return False
+
+
+async def run_scheduled_jobs():
+    """スケジュールされたアカウントの自動ジョブ作成・実行"""
+    logger = setup_logger("scheduled_job_runner")
+
+    from src.services.user_service import user_service
+
+    logger.info("実行スケジュールをチェックしています...")
+
+    # 1. 実行すべきアカウントを取得
+    users_due = user_service.get_users_due_for_scraping(exclude_running_jobs=True)
+
+    if not users_due:
+        logger.info("現在実行すべきアカウントはありません")
+        return True
+
+    logger.info(f"{len(users_due)}件のアカウントが実行対象です")
+
+    success_count = 0
+    jobs_created = []
+
+    # 2. 各アカウントに対してジョブを自動作成
+    for user in users_due:
+        try:
+            # アカウント別にジョブを作成
+            job_id = job_service.create_job(
+                target_usernames=[user.username],
+                process_articles=True,
+                max_tweets=user.max_tweets_per_session,
+                scraper_account=None,  # 自動選択
+            )
+
+            if job_id:
+                logger.info(
+                    f"ジョブを自動作成: {job_id} (対象: {user.username}, 間隔: {user.scraping_interval_minutes}分)"
+                )
+                jobs_created.append(job_id)
+            else:
+                logger.error(f"ジョブ作成に失敗: {user.username}")
+
+        except Exception as e:
+            logger.error(f"ジョブ作成エラー ({user.username}): {e}")
+
+    if not jobs_created:
+        logger.warning("ジョブが作成されませんでした")
+        return False
+
+    # 3. 作成されたジョブを順次実行
+    logger.info(f"{len(jobs_created)}件のジョブを実行します")
+
+    for job_id in jobs_created:
+        try:
+            job = job_service.get_job(job_id)
+            if not job:
+                logger.error(f"作成したジョブが見つかりません: {job_id}")
+                continue
+
+            logger.info(f"自動ジョブを実行中: {job_id} (対象: {', '.join(job.target_usernames)})")
+
+            success = await execute_job(job)
+            if success:
+                success_count += 1
+
+            # ジョブ間の休憩（レート制限対応）
+            await asyncio.sleep(5)
+
+        except Exception as e:
+            logger.error(f"自動ジョブ実行エラー ({job_id}): {e}")
+
+    logger.info(f"自動ジョブ実行完了: {success_count}/{len(jobs_created)}件が成功")
+
+    # 4. 実行統計を表示
+    if success_count > 0:
+        successful_usernames = []
+        for job_id in jobs_created[:success_count]:
+            job = job_service.get_job(job_id)
+            if job:
+                successful_usernames.extend(job.target_usernames)
+
+        logger.info(f"成功したアカウント: {', '.join(successful_usernames)}")
+
+    return success_count >= len(jobs_created) * 0.8  # 80%以上成功なら成功とみなす
+
+
 async def run_pending_jobs():
-    """待機中のジョブを実行"""
-    logger = setup_logger("job_runner")
+    """従来の待機中ジョブ実行（後方互換性のため残す）"""
+    logger = setup_logger("pending_job_runner")
 
     logger.info("待機中のジョブを検索しています...")
     pending_jobs = job_service.get_jobs(status=ScrapingJobStatus.PENDING.value, limit=10)
@@ -365,7 +475,9 @@ def main():
         epilog="""
 使用例:
   %(prog)s --users elonmusk jack dorsey    # 指定ユーザーをスクレイピング
-  %(prog)s --run-jobs                      # データベースの待機中ジョブを実行
+  %(prog)s --run-jobs                      # アカウント別スケジュールで自動実行
+  %(prog)s --run-pending-jobs              # データベースの待機中ジョブを実行
+  %(prog)s --migrate                       # ユーザーデータをマイグレーション
   %(prog)s --ingest-only                   # データインジェストのみ実行
   %(prog)s --stats                         # 統計情報を表示
   %(prog)s --users elonmusk --no-articles  # 記事処理なしでスクレイピング
@@ -374,7 +486,11 @@ def main():
 
     parser.add_argument("--users", "-u", nargs="+", help="スクレイピング対象のユーザー名（@なし）")
 
-    parser.add_argument("--run-jobs", action="store_true", help="データベースの待機中ジョブを実行")
+    parser.add_argument(
+        "--run-jobs", action="store_true", help="アカウント別スケジュールに基づいてジョブを自動作成・実行"
+    )
+
+    parser.add_argument("--run-pending-jobs", action="store_true", help="データベースの待機中ジョブを実行（従来機能）")
 
     parser.add_argument("--run-single-job", type=str, help="指定されたジョブIDの単一ジョブを実行")
 
@@ -385,6 +501,10 @@ def main():
     )
 
     parser.add_argument("--stats", action="store_true", help="統計情報を表示")
+
+    parser.add_argument(
+        "--migrate", action="store_true", help="ユーザーデータをマイグレーション（scraping_interval_minutes追加）"
+    )
 
     parser.add_argument("--no-articles", action="store_true", help="記事コンテンツの処理をスキップ")
 
@@ -415,13 +535,23 @@ def main():
         success = show_stats()
         sys.exit(0 if success else 1)
 
+    # マイグレーション実行
+    if args.migrate:
+        success = migrate_user_data()
+        sys.exit(0 if success else 1)
+
     # データインジェストのみ
     if args.ingest_only:
         success = data_ingest_only()
         sys.exit(0 if success else 1)
 
-    # データベースジョブを実行
+    # アカウント別スケジュールに基づく自動ジョブ実行
     if args.run_jobs:
+        success = asyncio.run(run_scheduled_jobs())
+        sys.exit(0 if success else 1)
+
+    # 従来の待機中ジョブを実行
+    if args.run_pending_jobs:
         success = asyncio.run(run_pending_jobs())
         sys.exit(0 if success else 1)
 
@@ -432,7 +562,7 @@ def main():
 
     # スクレイピング実行（従来方式）
     if not args.users:
-        parser.error("--users, --run-jobs, または --run-single-job オプションを指定してください")
+        parser.error("--users, --run-jobs, --run-pending-jobs, または --run-single-job オプションを指定してください")
 
     # 非同期実行
     success = asyncio.run(

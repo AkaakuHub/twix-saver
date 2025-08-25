@@ -14,6 +14,7 @@ export interface UserFormData {
   username: string
   priority: number
   active: boolean
+  scraping_interval_minutes: number
 }
 
 export const UserForm = ({ user, onSubmit, onCancel }: UserFormProps) => {
@@ -21,6 +22,7 @@ export const UserForm = ({ user, onSubmit, onCancel }: UserFormProps) => {
     username: '',
     priority: 2,
     active: true,
+    scraping_interval_minutes: 30,
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -32,6 +34,7 @@ export const UserForm = ({ user, onSubmit, onCancel }: UserFormProps) => {
         username: user.username,
         priority: user.priority,
         active: user.active,
+        scraping_interval_minutes: user.scraping_interval_minutes || 30,
       })
     }
   }, [user])
@@ -45,6 +48,12 @@ export const UserForm = ({ user, onSubmit, onCancel }: UserFormProps) => {
       newErrors.username = 'ユーザー名は英数字とアンダースコアのみ使用可能です'
     } else if (formData.username.length > 50) {
       newErrors.username = 'ユーザー名は50文字以内で入力してください'
+    }
+
+    if (formData.scraping_interval_minutes < 15) {
+      newErrors.scraping_interval_minutes = '実行間隔は15分以上で設定してください'
+    } else if (formData.scraping_interval_minutes > 1440) {
+      newErrors.scraping_interval_minutes = '実行間隔は1440分（24時間）以内で設定してください'
     }
 
     setErrors(newErrors)
@@ -121,6 +130,67 @@ export const UserForm = ({ user, onSubmit, onCancel }: UserFormProps) => {
               </label>
             ))}
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            実行間隔（分）
+            <span className="text-red-500 ml-1">*</span>
+          </label>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { value: 15, label: '15分' },
+                { value: 30, label: '30分' },
+                { value: 60, label: '1時間' },
+                { value: 120, label: '2時間' },
+              ].map(preset => (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() =>
+                    setFormData(prev => ({
+                      ...prev,
+                      scraping_interval_minutes: preset.value,
+                    }))
+                  }
+                  className={`
+                    px-3 py-2 text-sm border rounded-md transition-colors
+                    ${
+                      formData.scraping_interval_minutes === preset.value
+                        ? 'bg-blue-50 border-blue-300 text-blue-700'
+                        : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                    }
+                  `}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <Input
+              label=""
+              type="number"
+              min={15}
+              max={1440}
+              value={formData.scraping_interval_minutes}
+              onChange={e => {
+                const value = parseInt(e.target.value) || 15
+                setFormData(prev => ({
+                  ...prev,
+                  scraping_interval_minutes: value,
+                }))
+                if (errors.scraping_interval_minutes) {
+                  setErrors(prev => ({ ...prev, scraping_interval_minutes: '' }))
+                }
+              }}
+              placeholder="カスタム間隔（15-1440分）"
+              error={errors.scraping_interval_minutes}
+              className="max-w-xs"
+            />
+          </div>
+          <p className="text-sm text-gray-500 mt-1">
+            このアカウントをスクレイピングする間隔を設定します（最小15分）
+          </p>
         </div>
 
         <div className="flex items-center">

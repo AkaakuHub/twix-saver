@@ -39,6 +39,7 @@ class TargetUserCreate(BaseModel):
     display_name: Optional[str] = Field(None, max_length=100, description="表示名")
     priority: int = Field(2, ge=1, le=4, description="優先度 (1:低, 2:標準, 3:高, 4:緊急)")
     active: bool = Field(True, description="有効状態")
+    scraping_interval_minutes: int = Field(30, ge=15, le=1440, description="実行間隔（分）")
     max_tweets_per_session: Optional[int] = Field(None, gt=0, le=1000, description="1セッションあたり最大ツイート数")
 
 
@@ -49,8 +50,8 @@ class TargetUserUpdate(BaseModel):
     priority: Optional[int] = Field(None, ge=1, le=4)
     active: Optional[bool] = None
     scraping_enabled: Optional[bool] = None
+    scraping_interval_minutes: Optional[int] = Field(None, ge=15, le=1440, description="実行間隔（分）")
     max_tweets_per_session: Optional[int] = Field(None, gt=0, le=1000)
-    custom_schedule: Optional[str] = Field(None, description="カスタムスケジュール (cron形式)")
 
 
 class TargetUserResponse(BaseModel):
@@ -74,8 +75,8 @@ class TargetUserResponse(BaseModel):
 
     # 設定
     scraping_enabled: bool = True
+    scraping_interval_minutes: int = 30
     max_tweets_per_session: Optional[int] = None
-    custom_schedule: Optional[str] = None
 
     # メタデータ
     profile_image_url: Optional[str] = None

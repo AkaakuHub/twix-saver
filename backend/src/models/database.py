@@ -58,8 +58,8 @@ class TargetUser:
 
     # 設定
     scraping_enabled: bool = True
+    scraping_interval_minutes: int = 30  # 必須フィールド：アカウント別実行間隔
     max_tweets_per_session: Optional[int] = None
-    custom_schedule: Optional[str] = None  # cron形式
 
     # メタデータ
     profile_image_url: Optional[str] = None
@@ -383,13 +383,7 @@ class SystemConfig:
 
 # デフォルト設定
 DEFAULT_SYSTEM_CONFIGS = [
-    # スクレイピング設定
-    SystemConfig(
-        key="scraping_interval_minutes",
-        value=15,
-        description="スクレイピング実行間隔（分）",
-        category="scraping",
-    ),
+    # スクレイピング設定（グローバル実行間隔は削除 - アカウント別設定に移行）
     SystemConfig(
         key="random_delay_max_seconds",
         value=120,

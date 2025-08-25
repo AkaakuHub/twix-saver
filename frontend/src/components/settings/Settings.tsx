@@ -19,7 +19,6 @@ const defaultSettings: SettingsResponse = {
     password: '',
   },
   scraping: {
-    interval_minutes: 15,
     random_delay_max_seconds: 120,
     max_tweets_per_session: 100,
     headless: true,
@@ -69,9 +68,6 @@ export function Settings() {
         password: String(data.proxy?.password ?? defaultSettings.proxy.password),
       },
       scraping: {
-        interval_minutes: Number(
-          data.scraping?.interval_minutes ?? defaultSettings.scraping.interval_minutes
-        ),
         random_delay_max_seconds: Number(
           data.scraping?.random_delay_max_seconds ??
             defaultSettings.scraping.random_delay_max_seconds
@@ -440,21 +436,11 @@ export function Settings() {
           <Card>
             <CardHeader>
               <CardTitle>スクレイピング設定</CardTitle>
-              <CardDescription>データ収集の頻度や制限を設定します</CardDescription>
+              <CardDescription>
+                スクレイピングの動作設定（実行間隔は各ユーザー個別に設定）
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="interval-minutes">実行間隔（分）</Label>
-                <Input
-                  id="interval-minutes"
-                  type="number"
-                  min="1"
-                  value={settings.scraping.interval_minutes}
-                  onChange={e =>
-                    updateSettings('scraping', 'interval_minutes', parseInt(e.target.value) || 1)
-                  }
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="random-delay">ランダム遅延最大値（秒）</Label>
                 <Input

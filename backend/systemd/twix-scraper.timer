@@ -3,7 +3,7 @@ Description=Twix Saver スクレイピングタイマー
 Requires=twix-scraper.service
 
 [Timer]
-# 15分間隔で実行（設定により調整可能）
+# 15分間隔で実行（アカウント別実行間隔制御）
 OnCalendar=*:0/15
 
 # 予測可能性を避けるためのランダム遅延（最大2分）

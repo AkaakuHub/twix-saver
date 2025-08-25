@@ -107,6 +107,10 @@ async def create_user(user_data: TargetUserCreate):
             active=user_data.active,
         )
 
+        # 実行間隔を別途設定
+        if success and user_data.scraping_interval_minutes:
+            user_service.update_user(username, {"scraping_interval_minutes": user_data.scraping_interval_minutes})
+
         if success:
             logger.info(f"新しいユーザーを追加: {username}")
             return SuccessResponse(

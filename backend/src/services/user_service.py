@@ -3,7 +3,7 @@
 データベース操作とビジネスロジックを提供
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from pymongo.collection import Collection
@@ -278,6 +278,129 @@ class UserService:
         except PyMongoError as e:
             self.logger.error(f"ユーザー検索エラー: {e}")
             return []
+
+    def migrate_scraping_interval(self, default_interval: int = 30) -> dict[str, int]:
+        """既存ユーザーにscraping_interval_minutesフィールドを追加するマイグレーション"""
+        try:
+            # scraping_interval_minutesフィールドが存在しないユーザーを検索
+            users_to_migrate = list(
+                self.collection.find(
+                    {"$or": [{"scraping_interval_minutes": {"$exists": False}}, {"scraping_interval_minutes": None}]}
+                )
+            )
+
+            if not users_to_migrate:
+                self.logger.info("マイグレーション対象のユーザーはありません")
+                return {"migrated": 0, "total": 0}
+
+            migrated_count = 0
+            for user_doc in users_to_migrate:
+                try:
+                    # 特別なユーザーには個別設定
+                    if user_doc.get("username") == "raven_koekora":
+                        interval = 30  # @raven_koekoraには30分間隔
+                    else:
+                        interval = default_interval
+
+                    result = self.collection.update_one(
+                        {"username": user_doc["username"]},
+                        {"$set": {"scraping_interval_minutes": interval, "updated_at": datetime.utcnow()}},
+                    )
+
+                    if result.modified_count > 0:
+                        migrated_count += 1
+                        self.logger.info(f"ユーザーをマイグレーション: {user_doc['username']} -> {interval}分")
+
+                except PyMongoError as e:
+                    self.logger.error(f"ユーザーマイグレーションエラー ({user_doc.get('username', 'unknown')}): {e}")
+
+            self.logger.info(f"マイグレーション完了: {migrated_count}/{len(users_to_migrate)}件")
+
+            return {"migrated": migrated_count, "total": len(users_to_migrate)}
+
+        except PyMongoError as e:
+            self.logger.error(f"マイグレーション処理エラー: {e}")
+            return {"migrated": 0, "total": 0, "error": str(e)}
+
+    def get_users_due_for_scraping(self, exclude_running_jobs: bool = True) -> list[TargetUser]:
+        """実行すべきアカウントを取得（アカウント別実行間隔に基づく）"""
+        try:
+            current_time = datetime.utcnow()
+
+            # アクティブでスクレイピング有効なユーザーを取得
+            query = {"active": True, "scraping_enabled": True, "scraping_interval_minutes": {"$exists": True, "$gt": 0}}
+
+            all_users = list(self.collection.find(query))
+            due_users = []
+
+            for user_doc in all_users:
+                try:
+                    user = TargetUser.from_dict(user_doc)
+
+                    # 最後のスクレイピング時刻から実行間隔が経過したかチェック
+                    if user.last_scraped_at is None:
+                        # 初回実行の場合はすぐに実行対象
+                        due_users.append(user)
+                        self.logger.debug(f"初回実行対象: {user.username}")
+                        continue
+
+                    # 次回実行予定時刻を計算
+                    next_run_time = user.last_scraped_at + timedelta(minutes=user.scraping_interval_minutes)
+
+                    if current_time >= next_run_time:
+                        due_users.append(user)
+                        elapsed_minutes = (current_time - user.last_scraped_at).total_seconds() / 60
+                        self.logger.debug(
+                            f"実行対象: {user.username} "
+                            f"(間隔: {user.scraping_interval_minutes}分, "
+                            f"最終実行から: {elapsed_minutes:.1f}分経過)"
+                        )
+
+                except Exception as e:
+                    self.logger.error(f"ユーザー実行時刻判定エラー ({user_doc.get('username', 'unknown')}): {e}")
+
+            # 実行中ジョブの除外処理
+            if exclude_running_jobs and due_users:
+                due_users = self._exclude_users_with_running_jobs(due_users)
+
+            if due_users:
+                usernames = [user.username for user in due_users]
+                self.logger.info(f"実行対象アカウント: {len(due_users)}件 ({', '.join(usernames)})")
+            else:
+                self.logger.debug("現在実行対象のアカウントはありません")
+
+            return due_users
+
+        except PyMongoError as e:
+            self.logger.error(f"実行対象ユーザー取得エラー: {e}")
+            return []
+
+    def _exclude_users_with_running_jobs(self, users: list[TargetUser]) -> list[TargetUser]:
+        """実行中ジョブがあるユーザーを除外"""
+        try:
+            from src.services.job_service import job_service
+
+            # 実行中ジョブのターゲットユーザーを取得
+            running_jobs = job_service.get_running_jobs()
+            running_usernames = set()
+
+            for job in running_jobs:
+                running_usernames.update(job.target_usernames)
+
+            # 実行中でないユーザーのみを返す
+            filtered_users = []
+            for user in users:
+                if user.username not in running_usernames:
+                    filtered_users.append(user)
+                else:
+                    self.logger.debug(f"実行中ジョブがあるため除外: {user.username}")
+
+            return filtered_users
+
+        except Exception as e:
+            self.logger.error(f"実行中ジョブチェックエラー: {e}")
+            # エラーの場合は元のリストをそのまま返す
+            return users
 
 
 # グローバルインスタンス
