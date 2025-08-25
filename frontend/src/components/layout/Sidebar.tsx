@@ -25,7 +25,7 @@ const navigation = [
 ]
 
 export const Sidebar = ({ open, setOpen }: SidebarProps) => {
-  const SidebarContent = () => (
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div
       className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-2"
       data-testid="sidebar"
@@ -46,6 +46,11 @@ export const Sidebar = ({ open, setOpen }: SidebarProps) => {
                 <li key={item.name}>
                   <NavLink
                     to={item.href}
+                    onClick={() => {
+                      if (isMobile) {
+                        setOpen(false)
+                      }
+                    }}
                     className={({ isActive }) =>
                       clsx(
                         isActive
@@ -111,7 +116,7 @@ export const Sidebar = ({ open, setOpen }: SidebarProps) => {
                     </button>
                   </div>
                 </Transition.Child>
-                <SidebarContent />
+                <SidebarContent isMobile={true} />
               </Dialog.Panel>
             </Transition.Child>
           </div>
@@ -119,10 +124,8 @@ export const Sidebar = ({ open, setOpen }: SidebarProps) => {
       </Transition.Root>
 
       {/* Static sidebar for desktop */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6">
-          <SidebarContent />
-        </div>
+      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col border-r border-gray-200">
+        <SidebarContent isMobile={false} />
       </div>
     </>
   )
