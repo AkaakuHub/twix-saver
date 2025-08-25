@@ -107,7 +107,7 @@ export function Settings() {
 
   const loadTwitterAccounts = async () => {
     try {
-      const response = await api.get('/accounts')
+      const response = await api.get('/accounts?include_inactive=true')
       setTwitterAccounts(response as TwitterAccount[])
     } catch {
       // Twitterアカウント読み込みエラーは無視
