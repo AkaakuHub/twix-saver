@@ -48,7 +48,8 @@ class JobService:
         target_usernames: List[str],
         scraper_account: Optional[str] = None,
         process_articles: bool = True,
-        max_tweets: Optional[int] = None
+        max_tweets: Optional[int] = None,
+        specific_tweet_ids: Optional[List[str]] = None
     ) -> Optional[str]:
         """新しいスクレイピングジョブを作成"""
         try:
@@ -60,6 +61,7 @@ class JobService:
                 scraper_account=scraper_account,
                 process_articles=process_articles,
                 max_tweets=max_tweets,
+                specific_tweet_ids=specific_tweet_ids,
                 created_at=datetime.utcnow()
             )
             

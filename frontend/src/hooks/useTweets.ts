@@ -318,14 +318,44 @@ export const useTweetManagement = () => {
     },
   })
 
+  // 特定ツイート再取得
+  const refreshTweetMutation = useMutation({
+    mutationFn: async (tweetId: string): Promise<void> => {
+      const response = await fetch(`${API_BASE}/tweets/refresh/tweet/${tweetId}`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'ツイート再取得に失敗しました')
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tweets'] })
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      addNotification({
+        type: 'success',
+        title: 'ツイート再取得ジョブを開始しました',
+      })
+    },
+    onError: (error: Error) => {
+      addNotification({
+        type: 'error',
+        title: 'ツイート再取得エラー',
+        message: error.message,
+      })
+    },
+  })
+
   return {
     deleteTweet: deleteTweetMutation.mutate,
     deleteTweetsBulk: deleteTweetsBulkMutation.mutate,
     refreshAllTweets: refreshAllTweetsMutation.mutate,
     refreshUserTweets: refreshUserTweetsMutation.mutate,
+    refreshTweet: refreshTweetMutation.mutate,
     isDeleting: deleteTweetMutation.isPending,
     isDeletingBulk: deleteTweetsBulkMutation.isPending,
     isRefreshing: refreshAllTweetsMutation.isPending,
     isRefreshingUser: refreshUserTweetsMutation.isPending,
+    isRefreshingTweet: refreshTweetMutation.isPending,
   }
 }

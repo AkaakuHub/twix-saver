@@ -561,6 +561,115 @@ async def refresh_all_tweets():
         raise HTTPException(status_code=500, detail=f"ツイート再取得に失敗しました: {str(e)}")
 
 
+@router.post("/refresh/tweet/{tweet_id}")
+async def refresh_single_tweet(tweet_id: str):
+    """特定ツイートを再取得"""
+    try:
+        if not mongodb_manager.is_connected:
+            raise HTTPException(status_code=500, detail="データベース接続エラー")
+        
+        # ツイートの存在確認
+        logger.info(f"ツイート検索開始: {tweet_id}")
+        existing_tweet = mongodb_manager.tweets_collection.find_one({
+            "$or": [
+                {"id_str": tweet_id},
+                {"rest_id": tweet_id}
+            ]
+        })
+        
+        if not existing_tweet:
+            logger.error(f"ツイートが見つかりません: {tweet_id}")
+            # デバッグ用：似たようなIDが存在するか確認
+            similar_tweets = list(mongodb_manager.tweets_collection.find({}, {"id_str": 1, "rest_id": 1}).limit(5))
+            logger.error(f"データベース内のサンプルID: {similar_tweets}")
+            raise HTTPException(status_code=404, detail=f"ツイートが見つかりません: {tweet_id}")
+        
+        logger.info(f"ツイートが見つかりました: {tweet_id}")
+        
+        # ツイート作者のユーザー名を取得
+        author_username = ""
+        logger.info(f"ツイートデータ構造確認: core={{'core' in existing_tweet}}, legacy={{'legacy' in existing_tweet}}")
+        
+        if "core" in existing_tweet and "user_results" in existing_tweet["core"]:
+            user_result = existing_tweet["core"]["user_results"].get("result", {})
+            if "core" in user_result:
+                author_username = user_result["core"].get("screen_name", "")
+                logger.info(f"core構造からユーザー名取得: {author_username}")
+            elif "legacy" in user_result:
+                author_username = user_result["legacy"].get("screen_name", "")
+                logger.info(f"legacy構造からユーザー名取得: {author_username}")
+        elif "legacy" in existing_tweet and "user" in existing_tweet["legacy"]:
+            author_username = existing_tweet["legacy"]["user"].get("screen_name", "")
+            logger.info(f"legacy.userからユーザー名取得: {author_username}")
+        
+        if not author_username:
+            logger.error(f"ユーザー名取得失敗。ツイートキー: {list(existing_tweet.keys())}")
+            raise HTTPException(status_code=400, detail="ツイート作者のユーザー名を取得できません")
+        
+        logger.info(f"取得したユーザー名: {author_username}")
+        
+        # ユーザーの存在確認（特定ツイート再取得では登録不要）
+        logger.info(f"ユーザーサービスでユーザー確認開始: {author_username}")
+        from src.services.user_service import user_service
+        
+        # まず正確なユーザー名で検索
+        user = user_service.get_user(author_username)
+        
+        # 見つからない場合は大文字小文字を区別しない検索
+        if not user:
+            import re
+            user_doc = mongodb_manager.db['target_users'].find_one({
+                'username': re.compile(f'^{re.escape(author_username)}$', re.IGNORECASE)
+            })
+            if user_doc:
+                logger.info(f"大文字小文字違いでユーザー発見: {author_username} -> {user_doc['username']}")
+                # 正しいユーザー名に更新
+                author_username = user_doc['username']
+                user = user_service.get_user(author_username)
+        
+        if not user:
+            logger.info(f"ユーザーが未登録ですが、特定ツイート再取得のため処理を続行: {author_username}")
+            # 特定ツイートの再取得では、ユーザー登録は不要
+        else:
+            logger.info(f"ユーザーが見つかりました: {author_username}, active={user.active}")
+            
+            if not user.active:
+                logger.error(f"ユーザーが無効: {author_username}")
+                raise HTTPException(status_code=400, detail=f"ユーザーが無効になっています: {author_username}")
+        
+        # 特定のツイートIDのみを対象とするスクレイピングジョブを作成
+        logger.info(f"ジョブサービスでジョブ作成開始: {author_username}, tweet_id={tweet_id}")
+        from src.services.job_service import job_service
+        
+        job_id = job_service.create_job(
+            target_usernames=[author_username],
+            process_articles=True,
+            max_tweets=1,  # 1件のみ
+            scraper_account=None,
+            specific_tweet_ids=[tweet_id]  # 特定のツイートIDを指定
+        )
+        
+        logger.info(f"ジョブ作成結果: job_id={job_id}")
+        
+        if not job_id:
+            raise HTTPException(status_code=500, detail="ジョブの作成に失敗しました")
+        
+        logger.info(f"ツイート '{tweet_id}' の再取得ジョブを作成: {job_id}")
+        return {
+            "success": True,
+            "message": f"ツイート {tweet_id} の再取得ジョブを開始しました",
+            "job_id": job_id,
+            "tweet_id": tweet_id,
+            "author_username": author_username
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"ツイート再取得エラー ({tweet_id}): {e}")
+        raise HTTPException(status_code=500, detail=f"ツイート再取得に失敗しました: {str(e)}")
+
+
 @router.post("/refresh/{username}")
 async def refresh_user_tweets(username: str):
     """特定ユーザーのツイートを再取得"""

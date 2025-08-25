@@ -62,7 +62,10 @@ async def execute_job(job: ScrapingJob) -> bool:
         tweet_data = {}
         
         try:
-            session = ScrapingSession(max_tweets=getattr(job, 'max_tweets', None))
+            session = ScrapingSession(
+                max_tweets=getattr(job, 'max_tweets', None),
+                specific_tweet_ids=getattr(job, 'specific_tweet_ids', None)
+            )
             # ジョブIDを設定してリアルタイムログを有効化
             session._current_job_id = job_id
             session_result = await session.run_session(job.target_usernames)

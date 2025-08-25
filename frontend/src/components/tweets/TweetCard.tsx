@@ -75,7 +75,7 @@ interface TweetCardProps {
   expanded?: boolean
   onExpand?: (tweetId: string) => void
   onDelete?: (tweetId: string) => void
-  onRefreshUser?: (username: string) => void
+  onRefreshTweet?: (tweetId: string) => void
   className?: string
 }
 
@@ -84,7 +84,7 @@ export const TweetCard = ({
   expanded = false,
   onExpand,
   onDelete,
-  onRefreshUser,
+  onRefreshTweet,
   className = '',
 }: TweetCardProps) => {
   const [isExpanded, setIsExpanded] = useState(expanded)
@@ -105,8 +105,8 @@ export const TweetCard = ({
     }
   }
 
-  const handleRefreshUser = () => {
-    onRefreshUser?.(tweet.author.username)
+  const handleRefreshTweet = () => {
+    onRefreshTweet?.(tweet.id)
     setShowActions(false)
   }
 
@@ -232,10 +232,11 @@ export const TweetCard = ({
                 {showActions && (
                   <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
                     <button
-                      onClick={handleRefreshUser}
+                      onClick={handleRefreshTweet}
                       className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
                     >
-                      <ArrowPathIcon className="w-4 h-4 mr-2" />@{tweet.author.username} を再取得
+                      <ArrowPathIcon className="w-4 h-4 mr-2" />
+                      このツイートを再取得
                     </button>
                     <button
                       onClick={handleDelete}

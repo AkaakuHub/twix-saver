@@ -318,6 +318,62 @@ class TwitterScraper:
             self.logger.debug(f"ユーザー名抽出エラー: {e}")
             return None
     
+    async def _scrape_specific_tweets(self, username: str, specific_tweet_ids: List[str]) -> List[Dict]:
+        """特定のツイートIDのみをスクレイピング"""
+        try:
+            collected_tweets = []
+            
+            for tweet_id in specific_tweet_ids:
+                try:
+                    self.logger.info(f"特定ツイートを取得中: {tweet_id}")
+                    
+                    # 個別ツイートURLに直接アクセス
+                    tweet_url = f"https://x.com/{username}/status/{tweet_id}"
+                    await self.page.goto(tweet_url)
+                    await self._random_delay(2, 4)
+                    
+                    # ツイートが存在するかチェック
+                    try:
+                        tweet_selector = '[data-testid="tweet"]'
+                        await self.page.wait_for_selector(tweet_selector, timeout=10000)
+                        
+                        # 基本的なツイートデータを作成（更新目的なので最小限）
+                        tweet_data = {
+                            "id_str": tweet_id,
+                            "scraped_at": datetime.now().isoformat(),
+                            "username": username,
+                            "refresh_requested": True,
+                            "legacy": {
+                                "id_str": tweet_id,
+                                "user": {
+                                    "screen_name": username
+                                }
+                            }
+                        }
+                        
+                        collected_tweets.append(tweet_data)
+                        self.collected_tweets.append(tweet_data)
+                        self.logger.info(f"特定ツイート取得成功: {tweet_id}")
+                        
+                    except Exception as e:
+                        self.logger.warning(f"特定ツイート {tweet_id} のページ読み込み失敗: {e}")
+                        continue
+                        
+                except Exception as e:
+                    self.logger.error(f"特定ツイート {tweet_id} の取得エラー: {e}")
+                    continue
+            
+            # チャンク保存
+            if self.collected_tweets:
+                await self._save_chunk()
+            
+            self.logger.info(f"特定ツイート取得完了: {len(collected_tweets)}件")
+            return collected_tweets
+            
+        except Exception as e:
+            self.logger.error(f"特定ツイートスクレイピングエラー: {e}")
+            return []
+    
     async def login(self) -> bool:
         """X.com へのログイン"""
         try:
@@ -386,9 +442,15 @@ class TwitterScraper:
             self.logger.error(f"ログイン処理エラー: {e}")
             return False
     
-    async def sync_user_tweets(self, username: str) -> List[Dict]:
+    async def sync_user_tweets(self, username: str, specific_tweet_ids: Optional[List[str]] = None) -> List[Dict]:
         """指定ユーザーの新規ツイートのみを検知・同期"""
         self.current_target_user = username
+        
+        # 特定ツイートIDが指定されている場合は専用処理
+        if specific_tweet_ids:
+            self.logger.info(f"@{username} の特定ツイート再取得を開始: {specific_tweet_ids}")
+            self._log_to_job(f"@{username} の特定ツイート再取得開始: {specific_tweet_ids}")
+            return await self._scrape_specific_tweets(username, specific_tweet_ids)
         
         self.logger.info(f"@{username} の新規ツイート検知を開始")
         self._log_to_job(f"@{username} の新規ツイート検知開始")
@@ -543,11 +605,12 @@ class TwitterScraper:
 class ScrapingSession:
     """スクレイピングセッションの管理クラス"""
     
-    def __init__(self, max_tweets: Optional[int] = None):
+    def __init__(self, max_tweets: Optional[int] = None, specific_tweet_ids: Optional[List[str]] = None):
         self.logger = setup_logger("scraping_session")
         self.start_time = time.time()
         self.scrapers: List[TwitterScraper] = []
         self.max_tweets = max_tweets
+        self.specific_tweet_ids = specific_tweet_ids
     
     async def run_session(self, target_users: List[str]) -> Dict[str, any]:
         """スクレイピングセッションを実行"""
@@ -597,7 +660,7 @@ class ScrapingSession:
                 for username in target_users:
                     try:
                         self.logger.info(f"ユーザー @{username} の新規ツイートを検知中...")
-                        new_tweets = await scraper.sync_user_tweets(username)
+                        new_tweets = await scraper.sync_user_tweets(username, self.specific_tweet_ids)
                         tweet_results[username] = new_tweets
                         
                         # 正確な統計情報を収集  

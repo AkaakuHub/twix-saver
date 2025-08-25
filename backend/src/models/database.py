@@ -244,6 +244,7 @@ class ScrapingJob:
     # 設定
     process_articles: bool = True
     max_tweets: Optional[int] = None
+    specific_tweet_ids: Optional[List[str]] = None
     
     def __post_init__(self):
         if self.stats is None:

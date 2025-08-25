@@ -39,7 +39,7 @@ export const TweetList = () => {
     page_size: 20,
   })
 
-  const { deleteTweet, refreshUserTweets, refreshAllTweets, isRefreshing } = useTweetManagement()
+  const { deleteTweet, refreshTweet, refreshAllTweets, isRefreshing } = useTweetManagement()
 
   // スクロール検出
   useEffect(() => {
@@ -191,7 +191,7 @@ export const TweetList = () => {
                 expanded={expandedTweets.has(tweet.id.toString())}
                 onExpand={handleTweetExpand}
                 onDelete={deleteTweet}
-                onRefreshUser={refreshUserTweets}
+                onRefreshTweet={refreshTweet}
               />
             ) : (
               <Card key={tweet.id} className="p-4 hover:bg-gray-50 transition-colors">
