@@ -6,6 +6,7 @@ To change ports, modify root .env file
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Load environment variables from root .env and backend .env

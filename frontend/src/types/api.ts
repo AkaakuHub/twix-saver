@@ -140,17 +140,6 @@ export interface TargetUserUpdate {
   custom_schedule?: string | null
 }
 
-export interface MediaItem {
-  media_id: string
-  original_url: string
-  type: 'photo' | 'linked_image'
-  mime_type: string
-  size: number
-  local_url?: string
-  position?: number // テキスト内での位置
-  order_type?: 'attachment' | 'link' // 種類（添付画像かリンク画像か）
-}
-
 export interface TweetResponse {
   id_str: string
   content: string
@@ -163,7 +152,7 @@ export interface TweetResponse {
   like_count?: number | null
   reply_count?: number | null
   extracted_articles?: Record<string, unknown>[] | null
-  downloaded_media?: MediaItem[] | null
+  downloaded_media?: Record<string, unknown>[] | null
   hashtags?: string[] | null
   mentions?: string[] | null
 }

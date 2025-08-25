@@ -1,5 +1,5 @@
 [tool.ruff]
-line-length = 88
+line-length = 120
 target-version = "py39"
 
 [tool.ruff.format]
@@ -27,6 +27,7 @@ ignore = [
     "S311",  # Standard pseudo-random generators are not suitable for cryptographic purposes
     "T201",  # print found
     "B008",  # Do not perform function calls in argument defaults
+    "E501",  # Line too long (will be handled by formatter at 120 chars)
 ]
 
 [tool.ruff.lint.per-file-ignores]

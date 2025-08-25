@@ -3,25 +3,23 @@
 MongoDB からのツイートデータ取得と検索機能を提供
 """
 
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import FileResponse, Response
 from datetime import datetime, timedelta
-from pymongo.errors import PyMongoError
 from pathlib import Path
-import os
-import mimetypes
+from typing import Any, Optional
 
-from src.web.models import TweetSearchFilter, TweetResponse, PaginatedResponse
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import Response
+
+from src.config.settings import settings
 from src.utils.data_manager import mongodb_manager
 from src.utils.logger import setup_logger
-from src.config.settings import settings
+from src.web.models import TweetResponse
 
 router = APIRouter(prefix="/tweets", tags=["tweets"])
 logger = setup_logger("api.tweets")  # reload trigger
 
 
-@router.get("/", response_model=List[TweetResponse])
+@router.get("/", response_model=list[TweetResponse])
 async def get_tweets(
     username: Optional[str] = Query(None, description="特定ユーザーのツイートのみ"),
     keyword: Optional[str] = Query(None, description="検索キーワード"),
@@ -30,33 +28,45 @@ async def get_tweets(
     has_articles: Optional[bool] = Query(None, description="記事リンクありのみ"),
     has_media: Optional[bool] = Query(None, description="メディアありのみ"),
     limit: int = Query(20, ge=1, le=100, description="取得件数"),
-    offset: int = Query(0, ge=0, description="オフセット")
+    offset: int = Query(0, ge=0, description="オフセット"),
 ):
     """ツイート一覧を取得（検索・フィルタ機能付き）"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         # クエリ構築
         query = {}
-        
+
         # ユーザー名フィルタ
         if username:
             query["$or"] = [
                 {"legacy.user.screen_name": {"$regex": username, "$options": "i"}},
-                {"core.user_results.result.legacy.screen_name": {"$regex": username, "$options": "i"}}
+                {
+                    "core.user_results.result.legacy.screen_name": {
+                        "$regex": username,
+                        "$options": "i",
+                    }
+                },
             ]
-        
+
         # キーワード検索
         if keyword:
             query["$or"] = query.get("$or", [])
             if not query["$or"]:
                 query["$or"] = []
-            query["$or"].extend([
-                {"legacy.full_text": {"$regex": keyword, "$options": "i"}},
-                {"note_tweet.note_tweet_results.result.text": {"$regex": keyword, "$options": "i"}}
-            ])
-        
+            query["$or"].extend(
+                [
+                    {"legacy.full_text": {"$regex": keyword, "$options": "i"}},
+                    {
+                        "note_tweet.note_tweet_results.result.text": {
+                            "$regex": keyword,
+                            "$options": "i",
+                        }
+                    },
+                ]
+            )
+
         # 日時範囲フィルタ
         if start_date or end_date:
             scraped_filter = {}
@@ -65,7 +75,7 @@ async def get_tweets(
             if end_date:
                 scraped_filter["$lte"] = end_date
             query["scraped_at"] = scraped_filter
-        
+
         # 記事リンクフィルタ
         if has_articles is not None:
             if has_articles:
@@ -73,39 +83,43 @@ async def get_tweets(
             else:
                 query["$or"] = [
                     {"extracted_articles": {"$exists": False}},
-                    {"extracted_articles": []}
+                    {"extracted_articles": []},
                 ]
-        
+
         # メディアフィルタ
         if has_media is not None:
             if has_media:
                 query["$or"] = query.get("$or", [])
                 if not query["$or"]:
                     query["$or"] = []
-                query["$or"].extend([
-                    {"legacy.entities.media": {"$exists": True, "$ne": []}},
-                    {"downloaded_media": {"$exists": True, "$ne": []}}
-                ])
+                query["$or"].extend(
+                    [
+                        {"legacy.entities.media": {"$exists": True, "$ne": []}},
+                        {"downloaded_media": {"$exists": True, "$ne": []}},
+                    ]
+                )
             else:
                 query["$and"] = query.get("$and", [])
-                query["$and"].extend([
-                    {"$or": [
-                        {"legacy.entities.media": {"$exists": False}},
-                        {"legacy.entities.media": []}
-                    ]},
-                    {"$or": [
-                        {"downloaded_media": {"$exists": False}},
-                        {"downloaded_media": []}
-                    ]}
-                ])
-        
+                query["$and"].extend(
+                    [
+                        {
+                            "$or": [
+                                {"legacy.entities.media": {"$exists": False}},
+                                {"legacy.entities.media": []},
+                            ]
+                        },
+                        {
+                            "$or": [
+                                {"downloaded_media": {"$exists": False}},
+                                {"downloaded_media": []},
+                            ]
+                        },
+                    ]
+                )
+
         # データ取得
-        cursor = (mongodb_manager.tweets_collection
-                 .find(query)
-                 .sort("created_at", -1)
-                 .skip(offset)
-                 .limit(limit))
-        
+        cursor = mongodb_manager.tweets_collection.find(query).sort("created_at", -1).skip(offset).limit(limit)
+
         tweets = []
         for doc in cursor:
             try:
@@ -114,41 +128,42 @@ async def get_tweets(
             except Exception as e:
                 logger.warning(f"ツイート変換エラー: {e}")
                 continue
-        
-        logger.info(f"ツイートを取得: {len(tweets)}件 "
-                   f"(ユーザー: {username}, キーワード: {keyword})")
-        
+
+        logger.info(f"ツイートを取得: {len(tweets)}件 (ユーザー: {username}, キーワード: {keyword})")
+
         return tweets
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"ツイート取得エラー: {e}")
-        raise HTTPException(status_code=500, detail=f"ツイート取得に失敗しました: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"\1: {str(e)}") from None
 
 
-@router.get("/search", response_model=List[TweetResponse])
+@router.get("/search", response_model=list[TweetResponse])
 async def search_tweets(q: str = Query(..., min_length=1, description="検索クエリ")):
     """ツイート全文検索"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         # 全文検索クエリ
         search_query = {
             "$or": [
                 {"legacy.full_text": {"$regex": q, "$options": "i"}},
-                {"note_tweet.note_tweet_results.result.text": {"$regex": q, "$options": "i"}},
+                {
+                    "note_tweet.note_tweet_results.result.text": {
+                        "$regex": q,
+                        "$options": "i",
+                    }
+                },
                 {"legacy.user.name": {"$regex": q, "$options": "i"}},
-                {"legacy.user.screen_name": {"$regex": q, "$options": "i"}}
+                {"legacy.user.screen_name": {"$regex": q, "$options": "i"}},
             ]
         }
-        
-        cursor = (mongodb_manager.tweets_collection
-                 .find(search_query)
-                 .sort("created_at", -1)
-                 .limit(50))
-        
+
+        cursor = mongodb_manager.tweets_collection.find(search_query).sort("created_at", -1).limit(50)
+
         tweets = []
         for doc in cursor:
             try:
@@ -157,42 +172,44 @@ async def search_tweets(q: str = Query(..., min_length=1, description="検索ク
             except Exception as e:
                 logger.warning(f"ツイート変換エラー: {e}")
                 continue
-        
+
         logger.info(f"ツイート検索: '{q}' -> {len(tweets)}件")
         return tweets
-        
+
     except Exception as e:
         logger.error(f"ツイート検索エラー: {e}")
-        raise HTTPException(status_code=500, detail=f"ツイート検索に失敗しました: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"\1: {str(e)}") from None
 
 
-
-
-@router.get("/user/{username}/latest", response_model=List[TweetResponse])
-async def get_user_latest_tweets(
-    username: str,
-    limit: int = Query(10, ge=1, le=50, description="取得件数")
-):
+@router.get("/user/{username}/latest", response_model=list[TweetResponse])
+async def get_user_latest_tweets(username: str, limit: int = Query(10, ge=1, le=50, description="取得件数")):
     """特定ユーザーの最新ツイートを取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         # ユーザー名の正規化
-        username = username.lstrip('@').lower()
-        
+        username = username.lstrip("@").lower()
+
         query = {
             "$or": [
-                {"legacy.user.screen_name": {"$regex": f"^{username}$", "$options": "i"}},
-                {"core.user_results.result.legacy.screen_name": {"$regex": f"^{username}$", "$options": "i"}}
+                {
+                    "legacy.user.screen_name": {
+                        "$regex": f"^{username}$",
+                        "$options": "i",
+                    }
+                },
+                {
+                    "core.user_results.result.legacy.screen_name": {
+                        "$regex": f"^{username}$",
+                        "$options": "i",
+                    }
+                },
             ]
         }
-        
-        cursor = (mongodb_manager.tweets_collection
-                 .find(query)
-                 .sort("created_at", -1)
-                 .limit(limit))
-        
+
+        cursor = mongodb_manager.tweets_collection.find(query).sort("created_at", -1).limit(limit)
+
         tweets = []
         for doc in cursor:
             try:
@@ -201,13 +218,13 @@ async def get_user_latest_tweets(
             except Exception as e:
                 logger.warning(f"ツイート変換エラー: {e}")
                 continue
-        
+
         logger.info(f"ユーザー最新ツイート: @{username} -> {len(tweets)}件")
         return tweets
-        
+
     except Exception as e:
         logger.error(f"ユーザー最新ツイート取得エラー ({username}): {e}")
-        raise HTTPException(status_code=500, detail=f"ユーザー最新ツイート取得に失敗しました: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"\1: {str(e)}") from None
 
 
 @router.get("/stats")
@@ -215,57 +232,52 @@ async def get_tweet_stats():
     """ツイート統計を取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         # 基本統計
         total_tweets = mongodb_manager.tweets_collection.count_documents({})
-        
+
         # 今日のツイート数
         today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        tweets_today = mongodb_manager.tweets_collection.count_documents({
-            "scraped_at": {"$gte": today}
-        })
-        
+        tweets_today = mongodb_manager.tweets_collection.count_documents({"scraped_at": {"$gte": today}})
+
         # 今週のツイート数
         week_ago = today - timedelta(days=7)
-        tweets_this_week = mongodb_manager.tweets_collection.count_documents({
-            "scraped_at": {"$gte": week_ago}
-        })
-        
+        tweets_this_week = mongodb_manager.tweets_collection.count_documents({"scraped_at": {"$gte": week_ago}})
+
         # 記事付きツイート数
-        tweets_with_articles = mongodb_manager.tweets_collection.count_documents({
-            "extracted_articles": {"$exists": True, "$ne": []}
-        })
-        
-        # メディア付きツイート数
-        tweets_with_media = mongodb_manager.tweets_collection.count_documents({
-            "$or": [
-                {"legacy.entities.media": {"$exists": True, "$ne": []}},
-                {"downloaded_media": {"$exists": True, "$ne": []}}
-            ]
-        })
-        
-        # 最新ツイート
-        latest_tweet = mongodb_manager.tweets_collection.find_one(
-            {},
-            sort=[("scraped_at", -1)]
+        tweets_with_articles = mongodb_manager.tweets_collection.count_documents(
+            {"extracted_articles": {"$exists": True, "$ne": []}}
         )
-        
+
+        # メディア付きツイート数
+        tweets_with_media = mongodb_manager.tweets_collection.count_documents(
+            {
+                "$or": [
+                    {"legacy.entities.media": {"$exists": True, "$ne": []}},
+                    {"downloaded_media": {"$exists": True, "$ne": []}},
+                ]
+            }
+        )
+
+        # 最新ツイート
+        latest_tweet = mongodb_manager.tweets_collection.find_one({}, sort=[("scraped_at", -1)])
+
         stats = {
             "total_tweets": total_tweets,
             "tweets_today": tweets_today,
             "tweets_this_week": tweets_this_week,
             "tweets_with_articles": tweets_with_articles,
             "tweets_with_media": tweets_with_media,
-            "latest_scraped_at": latest_tweet.get("scraped_at") if latest_tweet else None
+            "latest_scraped_at": latest_tweet.get("scraped_at") if latest_tweet else None,
         }
-        
+
         logger.info("ツイート統計を取得しました")
         return stats
-        
+
     except Exception as e:
         logger.error(f"ツイート統計取得エラー: {e}")
-        raise HTTPException(status_code=500, detail=f"ツイート統計取得に失敗しました: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"\1: {str(e)}") from None
 
 
 @router.get("/time-series")
@@ -273,54 +285,40 @@ async def get_tweet_time_series(days: int = Query(7, ge=1, le=30)):
     """ツイート時系列データを取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         # 指定日数前からのデータを集計
         start_date = datetime.utcnow() - timedelta(days=days)
-        
+
         # 日別のツイート数を集計
         pipeline = [
-            {
-                "$match": {
-                    "scraped_at": {"$gte": start_date}
-                }
-            },
+            {"$match": {"scraped_at": {"$gte": start_date}}},
             {
                 "$group": {
-                    "_id": {
-                        "$dateToString": {
-                            "format": "%Y-%m-%d",
-                            "date": "$scraped_at"
-                        }
-                    },
-                    "count": {"$sum": 1}
+                    "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$scraped_at"}},
+                    "count": {"$sum": 1},
                 }
             },
-            {
-                "$sort": {"_id": 1}
-            }
+            {"$sort": {"_id": 1}},
         ]
-        
+
         time_series_data = list(mongodb_manager.tweets_collection.aggregate(pipeline))
-        
+
         # 結果を整形
         data = []
         for item in time_series_data:
-            data.append({
-                "date": item["_id"],
-                "count": item["count"]
-            })
-        
+            data.append({"date": item["_id"], "count": item["count"]})
+
         logger.info(f"ツイート時系列データを取得: {days}日間, {len(data)}日分")
         return {
             "days": days,
             "data": data,
-            "total_tweets": sum(item["count"] for item in data)
+            "total_tweets": sum(item["count"] for item in data),
         }
-        
+
     except Exception as e:
         logger.error(f"ツイート時系列データ取得エラー: {e}")
-        raise HTTPException(status_code=500, detail=f"ツイート時系列データ取得に失敗しました: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"\1: {str(e)}") from None
 
 
 @router.get("/stats/summary")
@@ -328,59 +326,58 @@ async def get_tweet_statistics():
     """ツイート統計情報を取得（詳細版）"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         # 基本統計
         total_tweets = mongodb_manager.tweets_collection.count_documents({})
-        
+
         # 今日のツイート数
         today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        tweets_today = mongodb_manager.tweets_collection.count_documents({
-            "scraped_at": {"$gte": today}
-        })
-        
+        tweets_today = mongodb_manager.tweets_collection.count_documents({"scraped_at": {"$gte": today}})
+
         # 今週のツイート数
         week_ago = today - timedelta(days=7)
-        tweets_this_week = mongodb_manager.tweets_collection.count_documents({
-            "scraped_at": {"$gte": week_ago}
-        })
-        
+        tweets_this_week = mongodb_manager.tweets_collection.count_documents({"scraped_at": {"$gte": week_ago}})
+
         # 記事付きツイート数
-        tweets_with_articles = mongodb_manager.tweets_collection.count_documents({
-            "extracted_articles": {"$exists": True, "$ne": []}
-        })
-        
-        # メディア付きツイート数
-        tweets_with_media = mongodb_manager.tweets_collection.count_documents({
-            "$or": [
-                {"legacy.entities.media": {"$exists": True, "$ne": []}},
-                {"downloaded_media": {"$exists": True, "$ne": []}}
-            ]
-        })
-        
-        # 最新ツイート
-        latest_tweet = mongodb_manager.tweets_collection.find_one(
-            {},
-            sort=[("scraped_at", -1)]
+        tweets_with_articles = mongodb_manager.tweets_collection.count_documents(
+            {"extracted_articles": {"$exists": True, "$ne": []}}
         )
-        
-        # ユーザー別ツイート数（上位10）
-        user_stats = list(mongodb_manager.tweets_collection.aggregate([
+
+        # メディア付きツイート数
+        tweets_with_media = mongodb_manager.tweets_collection.count_documents(
             {
-                "$group": {
-                    "_id": {
-                        "$ifNull": [
-                            "$legacy.user.screen_name",
-                            "$core.user_results.result.legacy.screen_name"
-                        ]
+                "$or": [
+                    {"legacy.entities.media": {"$exists": True, "$ne": []}},
+                    {"downloaded_media": {"$exists": True, "$ne": []}},
+                ]
+            }
+        )
+
+        # 最新ツイート
+        latest_tweet = mongodb_manager.tweets_collection.find_one({}, sort=[("scraped_at", -1)])
+
+        # ユーザー別ツイート数（上位10）
+        user_stats = list(
+            mongodb_manager.tweets_collection.aggregate(
+                [
+                    {
+                        "$group": {
+                            "_id": {
+                                "$ifNull": [
+                                    "$legacy.user.screen_name",
+                                    "$core.user_results.result.legacy.screen_name",
+                                ]
+                            },
+                            "count": {"$sum": 1},
+                        }
                     },
-                    "count": {"$sum": 1}
-                }
-            },
-            {"$sort": {"count": -1}},
-            {"$limit": 10}
-        ]))
-        
+                    {"$sort": {"count": -1}},
+                    {"$limit": 10},
+                ]
+            )
+        )
+
         stats = {
             "total_tweets": total_tweets,
             "tweets_today": tweets_today,
@@ -389,17 +386,16 @@ async def get_tweet_statistics():
             "tweets_with_media": tweets_with_media,
             "latest_scraped_at": latest_tweet.get("scraped_at") if latest_tweet else None,
             "top_users": [
-                {"username": stat["_id"], "tweet_count": stat["count"]}
-                for stat in user_stats if stat["_id"]
-            ]
+                {"username": stat["_id"], "tweet_count": stat["count"]} for stat in user_stats if stat["_id"]
+            ],
         }
-        
+
         logger.info("ツイート統計を取得しました")
         return stats
-        
+
     except Exception as e:
         logger.error(f"ツイート統計取得エラー: {e}")
-        raise HTTPException(status_code=500, detail=f"ツイート統計取得に失敗しました: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"\1: {str(e)}") from None
 
 
 @router.get("/{tweet_id}", response_model=TweetResponse)
@@ -407,26 +403,21 @@ async def get_tweet(tweet_id: str):
     """特定ツイートの詳細を取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
-        doc = mongodb_manager.tweets_collection.find_one({
-            "$or": [
-                {"id_str": tweet_id},
-                {"rest_id": tweet_id}
-            ]
-        })
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
+        doc = mongodb_manager.tweets_collection.find_one({"$or": [{"id_str": tweet_id}, {"rest_id": tweet_id}]})
+
         if not doc:
             raise HTTPException(status_code=404, detail=f"ツイートが見つかりません: {tweet_id}")
-        
+
         tweet = _convert_tweet_document(doc)
         return TweetResponse(**tweet)
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"ツイート詳細取得エラー ({tweet_id}): {e}")
-        raise HTTPException(status_code=500, detail=f"ツイート詳細取得に失敗しました: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"\1: {str(e)}") from None
 
 
 @router.get("/media/{media_id}")
@@ -434,47 +425,44 @@ async def get_media_file(media_id: str):
     """メディアファイルをDBから配信"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         # MongoDBからメディアデータを取得
         media_doc = mongodb_manager.db.media_files.find_one({"_id": media_id})
-        
+
         if not media_doc:
             raise HTTPException(status_code=404, detail="メディアファイルが見つかりません")
-        
+
         # ファイルパスを取得してファイルを読み込み
         file_path_name = media_doc.get("file_path")
         if not file_path_name:
-            raise HTTPException(
-                status_code=500,
-                detail="メディアファイルパスが無効です"
-            )
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         # 完全なファイルパス
         full_file_path = Path(settings.images_dir) / file_path_name
-        
+
         if not full_file_path.exists():
             logger.error(f"メディアファイルが見つかりません: {full_file_path} (media_id: {media_id})")
             raise HTTPException(
                 status_code=404,
-                detail=f"メディアファイルが見つかりません: {file_path_name}"
+                detail=f"メディアファイルが見つかりません: {file_path_name}",
             )
-        
-        with open(full_file_path, 'rb') as f:
+
+        with open(full_file_path, "rb") as f:
             image_data = f.read()
         content_type = media_doc.get("content_type", "image/jpeg")
-        
+
         return Response(
             content=image_data,
             media_type=content_type,
-            headers={"Cache-Control": "public, max-age=86400"}  # 1日キャッシュ
+            headers={"Cache-Control": "public, max-age=86400"},  # 1日キャッシュ
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"メディアファイル配信エラー ({media_id}): {e}")
-        raise HTTPException(status_code=500, detail="メディアファイル配信に失敗しました")
+        raise HTTPException(status_code=500, detail="\1") from None
 
 
 @router.delete("/{tweet_id}")
@@ -482,58 +470,48 @@ async def delete_tweet(tweet_id: str):
     """ツイートを削除"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         # ツイートの存在確認
-        existing_tweet = mongodb_manager.tweets_collection.find_one({
-            "$or": [
-                {"id_str": tweet_id},
-                {"rest_id": tweet_id}
-            ]
-        })
-        
+        existing_tweet = mongodb_manager.tweets_collection.find_one(
+            {"$or": [{"id_str": tweet_id}, {"rest_id": tweet_id}]}
+        )
+
         if not existing_tweet:
             raise HTTPException(status_code=404, detail=f"ツイートが見つかりません: {tweet_id}")
-        
+
         # 関連するメディアファイルも削除
         downloaded_media = existing_tweet.get("downloaded_media", [])
         media_ids_to_delete = []
-        
+
         for media_item in downloaded_media:
             if isinstance(media_item, dict) and "media_id" in media_item:
                 media_ids_to_delete.append(media_item["media_id"])
-        
+
         # メディアファイルをDBから削除
         if media_ids_to_delete:
-            mongodb_manager.db.media_files.delete_many({
-                "_id": {"$in": media_ids_to_delete}
-            })
+            mongodb_manager.db.media_files.delete_many({"_id": {"$in": media_ids_to_delete}})
             logger.info(f"メディアファイルを削除: {len(media_ids_to_delete)}件")
-        
+
         # ツイート本体を削除
-        result = mongodb_manager.tweets_collection.delete_one({
-            "$or": [
-                {"id_str": tweet_id},
-                {"rest_id": tweet_id}
-            ]
-        })
-        
+        result = mongodb_manager.tweets_collection.delete_one({"$or": [{"id_str": tweet_id}, {"rest_id": tweet_id}]})
+
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="ツイートの削除に失敗しました")
-        
+
         logger.info(f"ツイートを削除しました: {tweet_id}")
         return {
             "success": True,
             "message": "ツイートを削除しました",
             "tweet_id": tweet_id,
-            "media_files_deleted": len(media_ids_to_delete)
+            "media_files_deleted": len(media_ids_to_delete),
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"ツイート削除エラー ({tweet_id}): {e}")
-        raise HTTPException(status_code=500, detail=f"ツイート削除に失敗しました: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"\1: {str(e)}") from None
 
 
 @router.post("/refresh")
@@ -541,41 +519,42 @@ async def refresh_all_tweets():
     """すべてのツイートを再取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         # アクティブなユーザー一覧を取得
         from src.services.user_service import user_service
+
         active_users = user_service.get_active_users()
-        
+
         if not active_users:
             raise HTTPException(status_code=400, detail="アクティブなユーザーがありません")
-        
+
         # スクレイピングジョブを作成
         from src.services.job_service import job_service
-        
+
         job_id = job_service.create_job(
             target_usernames=[user.username for user in active_users],
             process_articles=True,
             max_tweets=None,
-            scraper_account=None
+            scraper_account=None,
         )
-        
+
         if not job_id:
-            raise HTTPException(status_code=500, detail="ジョブの作成に失敗しました")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         logger.info(f"全ツイート再取得ジョブを作成: {job_id}")
         return {
             "success": True,
             "message": "ツイート再取得ジョブを開始しました",
             "job_id": job_id,
-            "target_users": len(active_users)
+            "target_users": len(active_users),
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"ツイート再取得エラー: {e}")
-        raise HTTPException(status_code=500, detail=f"ツイート再取得に失敗しました: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"\1: {str(e)}") from None
 
 
 @router.post("/refresh/tweet/{tweet_id}")
@@ -583,30 +562,27 @@ async def refresh_single_tweet(tweet_id: str):
     """特定ツイートを再取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         # ツイートの存在確認
         logger.info(f"ツイート検索開始: {tweet_id}")
-        existing_tweet = mongodb_manager.tweets_collection.find_one({
-            "$or": [
-                {"id_str": tweet_id},
-                {"rest_id": tweet_id}
-            ]
-        })
-        
+        existing_tweet = mongodb_manager.tweets_collection.find_one(
+            {"$or": [{"id_str": tweet_id}, {"rest_id": tweet_id}]}
+        )
+
         if not existing_tweet:
             logger.error(f"ツイートが見つかりません: {tweet_id}")
             # デバッグ用：似たようなIDが存在するか確認
             similar_tweets = list(mongodb_manager.tweets_collection.find({}, {"id_str": 1, "rest_id": 1}).limit(5))
             logger.error(f"データベース内のサンプルID: {similar_tweets}")
             raise HTTPException(status_code=404, detail=f"ツイートが見つかりません: {tweet_id}")
-        
+
         logger.info(f"ツイートが見つかりました: {tweet_id}")
-        
+
         # ツイート作者のユーザー名を取得
         author_username = ""
-        logger.info(f"ツイートデータ構造確認: core={{'core' in existing_tweet}}, legacy={{'legacy' in existing_tweet}}")
-        
+        logger.info("ツイートデータ構造確認: core={'core' in existing_tweet}, legacy={'legacy' in existing_tweet}")
+
         if "core" in existing_tweet and "user_results" in existing_tweet["core"]:
             user_result = existing_tweet["core"]["user_results"].get("result", {})
             if "core" in user_result:
@@ -618,73 +594,77 @@ async def refresh_single_tweet(tweet_id: str):
         elif "legacy" in existing_tweet and "user" in existing_tweet["legacy"]:
             author_username = existing_tweet["legacy"]["user"].get("screen_name", "")
             logger.info(f"legacy.userからユーザー名取得: {author_username}")
-        
+
         if not author_username:
             logger.error(f"ユーザー名取得失敗。ツイートキー: {list(existing_tweet.keys())}")
             raise HTTPException(status_code=400, detail="ツイート作者のユーザー名を取得できません")
-        
+
         logger.info(f"取得したユーザー名: {author_username}")
-        
+
         # ユーザーの存在確認（特定ツイート再取得では登録不要）
         logger.info(f"ユーザーサービスでユーザー確認開始: {author_username}")
         from src.services.user_service import user_service
-        
+
         # まず正確なユーザー名で検索
         user = user_service.get_user(author_username)
-        
+
         # 見つからない場合は大文字小文字を区別しない検索
         if not user:
             import re
-            user_doc = mongodb_manager.db['target_users'].find_one({
-                'username': re.compile(f'^{re.escape(author_username)}$', re.IGNORECASE)
-            })
+
+            user_doc = mongodb_manager.db["target_users"].find_one(
+                {"username": re.compile(f"^{re.escape(author_username)}$", re.IGNORECASE)}
+            )
             if user_doc:
                 logger.info(f"大文字小文字違いでユーザー発見: {author_username} -> {user_doc['username']}")
                 # 正しいユーザー名に更新
-                author_username = user_doc['username']
+                author_username = user_doc["username"]
                 user = user_service.get_user(author_username)
-        
+
         if not user:
             logger.info(f"ユーザーが未登録ですが、特定ツイート再取得のため処理を続行: {author_username}")
             # 特定ツイートの再取得では、ユーザー登録は不要
         else:
             logger.info(f"ユーザーが見つかりました: {author_username}, active={user.active}")
-            
+
             if not user.active:
                 logger.error(f"ユーザーが無効: {author_username}")
-                raise HTTPException(status_code=400, detail=f"ユーザーが無効になっています: {author_username}")
-        
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"ユーザーが無効になっています: {author_username}",
+                )
+
         # 特定のツイートIDのみを対象とするスクレイピングジョブを作成
         logger.info(f"ジョブサービスでジョブ作成開始: {author_username}, tweet_id={tweet_id}")
         from src.services.job_service import job_service
-        
+
         job_id = job_service.create_job(
             target_usernames=[author_username],
             process_articles=True,
             max_tweets=1,  # 1件のみ
             scraper_account=None,
-            specific_tweet_ids=[tweet_id]  # 特定のツイートIDを指定
+            specific_tweet_ids=[tweet_id],  # 特定のツイートIDを指定
         )
-        
+
         logger.info(f"ジョブ作成結果: job_id={job_id}")
-        
+
         if not job_id:
-            raise HTTPException(status_code=500, detail="ジョブの作成に失敗しました")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         logger.info(f"ツイート '{tweet_id}' の再取得ジョブを作成: {job_id}")
         return {
             "success": True,
             "message": f"ツイート {tweet_id} の再取得ジョブを開始しました",
             "job_id": job_id,
             "tweet_id": tweet_id,
-            "author_username": author_username
+            "author_username": author_username,
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"ツイート再取得エラー ({tweet_id}): {e}")
-        raise HTTPException(status_code=500, detail=f"ツイート再取得に失敗しました: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"\1: {str(e)}") from None
 
 
 @router.post("/refresh/{username}")
@@ -692,130 +672,123 @@ async def refresh_user_tweets(username: str):
     """特定ユーザーのツイートを再取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         # ユーザーの存在確認
         from src.services.user_service import user_service
+
         user = user_service.get_user(username)
-        
+
         if not user:
             raise HTTPException(status_code=404, detail=f"ユーザーが見つかりません: {username}")
-        
+
         if not user.active:
             raise HTTPException(status_code=400, detail=f"ユーザーが無効になっています: {username}")
-        
+
         # スクレイピングジョブを作成
         from src.services.job_service import job_service
-        
+
         job_id = job_service.create_job(
             target_usernames=[username],
             process_articles=True,
             max_tweets=None,
-            scraper_account=None
+            scraper_account=None,
         )
-        
+
         if not job_id:
-            raise HTTPException(status_code=500, detail="ジョブの作成に失敗しました")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         logger.info(f"ユーザー '{username}' のツイート再取得ジョブを作成: {job_id}")
         return {
             "success": True,
             "message": f"@{username} のツイート再取得ジョブを開始しました",
             "job_id": job_id,
-            "username": username
+            "username": username,
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"ユーザーツイート再取得エラー ({username}): {e}")
-        raise HTTPException(status_code=500, detail=f"ユーザーツイート再取得に失敗しました: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"\1: {str(e)}") from None
 
 
 @router.delete("/bulk")
-async def delete_tweets_bulk(request_body: Dict[str, List[str]]):
+async def delete_tweets_bulk(request_body: dict[str, list[str]]):
     """複数ツイートの一括削除"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="データベース接続エラー")
-        
+            raise HTTPException(status_code=500, detail="\1") from None
+
         tweet_ids = request_body.get("tweet_ids", [])
         if not tweet_ids:
             raise HTTPException(status_code=400, detail="削除するツイートIDが指定されていません")
-        
+
         deleted_count = 0
         media_files_deleted = 0
         errors = []
-        
+
         for tweet_id in tweet_ids:
             try:
                 # ツイートの存在確認
-                existing_tweet = mongodb_manager.tweets_collection.find_one({
-                    "$or": [
-                        {"id_str": tweet_id},
-                        {"rest_id": tweet_id}
-                    ]
-                })
-                
+                existing_tweet = mongodb_manager.tweets_collection.find_one(
+                    {"$or": [{"id_str": tweet_id}, {"rest_id": tweet_id}]}
+                )
+
                 if not existing_tweet:
                     errors.append(f"ツイートが見つかりません: {tweet_id}")
                     continue
-                
+
                 # 関連するメディアファイルも削除
                 downloaded_media = existing_tweet.get("downloaded_media", [])
                 media_ids_to_delete = []
-                
+
                 for media_item in downloaded_media:
                     if isinstance(media_item, dict) and "media_id" in media_item:
                         media_ids_to_delete.append(media_item["media_id"])
-                
+
                 # メディアファイルをDBから削除
                 if media_ids_to_delete:
-                    media_result = mongodb_manager.db.media_files.delete_many({
-                        "_id": {"$in": media_ids_to_delete}
-                    })
+                    media_result = mongodb_manager.db.media_files.delete_many({"_id": {"$in": media_ids_to_delete}})
                     media_files_deleted += media_result.deleted_count
-                
+
                 # ツイート本体を削除
-                result = mongodb_manager.tweets_collection.delete_one({
-                    "$or": [
-                        {"id_str": tweet_id},
-                        {"rest_id": tweet_id}
-                    ]
-                })
-                
+                result = mongodb_manager.tweets_collection.delete_one(
+                    {"$or": [{"id_str": tweet_id}, {"rest_id": tweet_id}]}
+                )
+
                 if result.deleted_count > 0:
                     deleted_count += 1
                 else:
                     errors.append(f"ツイートの削除に失敗: {tweet_id}")
-                    
+
             except Exception as e:
                 errors.append(f"ツイート {tweet_id} の削除エラー: {str(e)}")
                 continue
-        
+
         logger.info(f"一括削除完了: {deleted_count}件のツイート、{media_files_deleted}件のメディア")
-        
+
         return {
             "success": True,
             "message": f"{deleted_count}件のツイートを削除しました",
             "deleted_count": deleted_count,
             "media_files_deleted": media_files_deleted,
-            "errors": errors
+            "errors": errors,
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"一括削除エラー: {e}")
-        raise HTTPException(status_code=500, detail=f"一括削除に失敗しました: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"\1: {str(e)}") from None
 
 
-def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
+def _convert_tweet_document(doc: dict[str, Any]) -> dict[str, Any]:
     """MongoDBドキュメントをTweetResponseモデルに変換"""
-    
+
     # 基本情報の抽出
     tweet_id = doc.get("id_str") or doc.get("rest_id") or str(doc.get("_id", ""))
-    
+
     # ツイート本文の抽出
     content = ""
     if "legacy" in doc and "full_text" in doc["legacy"]:
@@ -823,11 +796,11 @@ def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
     elif "note_tweet" in doc and "note_tweet_results" in doc["note_tweet"]:
         note = doc["note_tweet"]["note_tweet_results"].get("result", {})
         content = note.get("text", "")
-    
+
     # ユーザー情報の抽出
     author_username = ""
     author_display_name = ""
-    
+
     # 新構造のチェックを優先（core.user_resultsが存在する場合）
     if "core" in doc and "user_results" in doc["core"]:
         user_result = doc["core"]["user_results"].get("result", {})
@@ -846,11 +819,11 @@ def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
         user = doc["legacy"]["user"]
         author_username = user.get("screen_name", "")
         author_display_name = user.get("name", "")
-    
+
     # デバッグログ
     if not author_username:
         logger.debug(f"ユーザー名取得失敗 - Tweet ID: {tweet_id}, Data keys: {list(doc.keys())}")
-    
+
     # エンゲージメント情報
     engagement = {}
     if "legacy" in doc:
@@ -858,9 +831,9 @@ def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
         engagement = {
             "retweet_count": legacy.get("retweet_count"),
             "like_count": legacy.get("favorite_count"),
-            "reply_count": legacy.get("reply_count")
+            "reply_count": legacy.get("reply_count"),
         }
-    
+
     # 作成日時の抽出・変換
     created_at = None
     if "legacy" in doc and "created_at" in doc["legacy"]:
@@ -872,7 +845,7 @@ def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
         except (ValueError, TypeError) as e:
             logger.warning(f"created_at パースエラー: '{created_at_str}' - {e}")
             pass
-    
+
     # スクレイピング日時
     scraped_at = doc.get("scraped_at")
     if isinstance(scraped_at, str):
@@ -881,20 +854,20 @@ def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
         except ValueError as e:
             logger.warning(f"scraped_at パースエラー: '{scraped_at}' - {e}")
             pass
-    
+
     # ハッシュタグとメンションの抽出
     hashtags = []
     mentions = []
-    
+
     if "legacy" in doc and "entities" in doc["legacy"]:
         entities = doc["legacy"]["entities"]
-        
+
         if "hashtags" in entities:
             hashtags = [tag.get("text", "") for tag in entities["hashtags"]]
-        
+
         if "user_mentions" in entities:
             mentions = [mention.get("screen_name", "") for mention in entities["user_mentions"]]
-    
+
     # ダウンロード済みメディアのURL変換
     downloaded_media = doc.get("downloaded_media", [])
     if downloaded_media:
@@ -902,7 +875,7 @@ def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
             if isinstance(media_item, dict) and "media_id" in media_item:
                 # メディアIDからAPIエンドポイント経由のURLに変換
                 media_item["local_url"] = f"/api/tweets/media/{media_item['media_id']}"
-    
+
     return {
         "id_str": tweet_id,
         "content": content,
@@ -917,5 +890,5 @@ def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
         "extracted_articles": doc.get("extracted_articles"),
         "downloaded_media": downloaded_media,
         "hashtags": hashtags if hashtags else None,
-        "mentions": mentions if mentions else None
+        "mentions": mentions if mentions else None,
     }
