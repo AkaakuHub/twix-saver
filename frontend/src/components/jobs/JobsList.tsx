@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card'
+import { formatDateOnly } from '../../utils/dateFormat'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
@@ -119,7 +120,7 @@ export const JobsList = () => {
                       <span>ジョブID: {job.job_id.slice(0, 8)}...</span>
                       {job.scraper_account && <span>アカウント: @{job.scraper_account}</span>}
                       {job.created_at && (
-                        <span>作成: {new Date(job.created_at).toLocaleDateString('ja-JP')}</span>
+                        <span title="作成日時 (JST)">作成: {formatDateOnly(job.created_at)}</span>
                       )}
                       {job.stats && <span>収集: {job.stats.tweets_collected || 0}件</span>}
                     </div>

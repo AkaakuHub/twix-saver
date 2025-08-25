@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Modal } from '../ui/Modal'
+import { formatJobDateTime } from '../../utils/dateFormat'
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { CheckCircleIcon, XCircleIcon, ClockIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
@@ -123,8 +124,8 @@ export const JobResultModal = ({ isOpen, onClose, job }: JobResultModalProps) =>
             {displayJob.created_at && (
               <div>
                 <span className="text-sm font-medium text-gray-700">作成日時:</span>
-                <span className="ml-2 text-sm text-gray-900">
-                  {new Date(displayJob.created_at).toLocaleString('ja-JP')}
+                <span className="ml-2 text-sm text-gray-900" title="JST">
+                  {formatJobDateTime(displayJob.created_at)}
                 </span>
               </div>
             )}

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { format } from 'date-fns'
-import { ja } from 'date-fns/locale'
+import { formatTweetCreatedAt, formatScrapedAt } from '../../utils/dateFormat'
 import {
   HeartIcon,
   ArrowPathRoundedSquareIcon,
@@ -200,8 +199,8 @@ export const TweetCard = ({
                   <h3 className="font-semibold text-gray-900">{tweet.author.display_name}</h3>
                   <span className="text-gray-500 text-sm">@{tweet.author.username}</span>
                 </div>
-                <p className="text-gray-500 text-sm">
-                  {format(new Date(tweet.created_at), 'MM/dd HH:mm', { locale: ja })}
+                <p className="text-gray-500 text-sm" title="ツイート作成時刻 (JST)">
+                  {formatTweetCreatedAt(tweet.created_at)}
                 </p>
               </div>
             </div>
@@ -455,8 +454,8 @@ export const TweetCard = ({
             <div className="text-xs text-gray-500 text-right">
               <div>総エンゲージメント: {formatNumber(getTotalEngagement())}</div>
               {tweet.scraped_at && (
-                <div className="mt-1">
-                  {format(new Date(tweet.scraped_at), 'M月d日 H時', { locale: ja })}時点
+                <div className="mt-1" title="スクレイピング時刻 (JST)">
+                  取得: {formatScrapedAt(tweet.scraped_at)}
                 </div>
               )}
             </div>

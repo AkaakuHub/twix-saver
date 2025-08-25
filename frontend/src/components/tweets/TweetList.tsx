@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTweets, useTweetManagement } from '../../hooks/useTweets'
+import { formatDateOnly } from '../../utils/dateFormat'
 import { Card } from '../ui/Card'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
 import { Badge } from '../ui/Badge'
@@ -201,12 +202,8 @@ export const TweetList = () => {
                       <span className="font-medium text-blue-600 text-sm">
                         @{tweet.author.username}
                       </span>
-                      <span className="text-gray-500 text-xs">
-                        {tweet.created_at &&
-                          new Date(tweet.created_at).toLocaleDateString('ja-JP', {
-                            month: 'short',
-                            day: 'numeric',
-                          })}
+                      <span className="text-gray-500 text-xs" title="ツイート作成日 (JST)">
+                        {tweet.created_at && formatDateOnly(tweet.created_at)}
                       </span>
                     </div>
                     <div className="truncate text-sm text-gray-900 flex-1">{tweet.text}</div>

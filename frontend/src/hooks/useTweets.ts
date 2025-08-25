@@ -153,8 +153,15 @@ export const useTweets = (params: TweetSearchParams = {}) => {
       refetchOnWindowFocus: false,
     })
 
-  // 全ページのツイートを結合
-  const tweets = data?.pages.flatMap(page => page.tweets) || []
+  // 全ページのツイートを結合してcreated_atで降順ソート（新しい順）
+  const tweets =
+    data?.pages
+      .flatMap(page => page.tweets)
+      .sort((a, b) => {
+        const dateA = new Date(a.created_at || 0).getTime()
+        const dateB = new Date(b.created_at || 0).getTime()
+        return dateB - dateA // 降順（新しい順）
+      }) || []
   const total = data?.pages[0]?.total || 0
   const hasMore = data?.pages[data?.pages.length - 1]?.hasMore || false
 

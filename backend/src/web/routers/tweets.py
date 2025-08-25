@@ -102,7 +102,7 @@ async def get_tweets(
         # データ取得
         cursor = (mongodb_manager.tweets_collection
                  .find(query)
-                 .sort("scraped_at", -1)
+                 .sort("created_at", -1)
                  .skip(offset)
                  .limit(limit))
         
@@ -146,7 +146,7 @@ async def search_tweets(q: str = Query(..., min_length=1, description="検索ク
         
         cursor = (mongodb_manager.tweets_collection
                  .find(search_query)
-                 .sort("scraped_at", -1)
+                 .sort("created_at", -1)
                  .limit(50))
         
         tweets = []
@@ -190,7 +190,7 @@ async def get_user_latest_tweets(
         
         cursor = (mongodb_manager.tweets_collection
                  .find(query)
-                 .sort("scraped_at", -1)
+                 .sort("created_at", -1)
                  .limit(limit))
         
         tweets = []

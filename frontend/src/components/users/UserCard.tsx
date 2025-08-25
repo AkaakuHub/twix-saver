@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
+import { formatUserDateTime } from '../../utils/dateFormat'
 import { useUserStore } from '../../stores/userStore'
 import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
@@ -130,10 +131,7 @@ export const UserCard = ({ user, onEdit, onDelete }: UserCardProps) => {
 
       {/* 作成日時 */}
       <div className="px-4 pb-3 text-xs text-gray-400">
-        登録:{' '}
-        {user.created_at
-          ? format(new Date(user.created_at), 'yyyy/MM/dd HH:mm', { locale: ja })
-          : '不明'}
+        登録: {formatUserDateTime(user.created_at)}
       </div>
     </Card>
   )

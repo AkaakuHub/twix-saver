@@ -31,7 +31,8 @@ export const useJobs = () => {
         throw error
       }
     },
-    staleTime: Infinity, // 手動更新のみ
+    staleTime: 0, // リアルタイム更新のため常に最新データを取得
+    refetchInterval: 3000, // 3秒間隔で自動更新（ジョブステータス変更を反映）
     refetchOnWindowFocus: false,
   })
 
