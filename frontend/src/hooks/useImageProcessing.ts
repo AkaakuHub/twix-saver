@@ -5,8 +5,8 @@ import type {
   FailedTweetsResponse,
   ImageProcessingRetryRequest,
   ImageProcessingRetryResponse,
-  SuccessResponse,
-} from '../types/api'
+} from '../types/api-custom'
+import type { SuccessResponse } from '../types/api'
 
 const API_BASE =
   process.env.NODE_ENV === 'production'

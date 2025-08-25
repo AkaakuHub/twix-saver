@@ -136,3 +136,61 @@ export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>
 
 // ジェネリック ページネーション（エイリアス）
 export type PaginatedList<T> = PaginatedResponse<T>
+
+// ===== 画像処理関連の型定義 =====
+
+export enum ImageProcessingStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  SKIPPED = 'skipped',
+}
+
+export interface ImageProcessingStats {
+  total_tweets: number
+  image_processing_stats: {
+    pending: number
+    processing: number
+    completed: number
+    failed: number
+    skipped: number
+    no_status: number
+  }
+  success_rate: number
+}
+
+export interface FailedTweet {
+  id_str: string
+  author_username: string
+  image_processing_error?: string | null
+  image_processing_retry_count?: number
+  image_processing_attempted_at?: string | null
+}
+
+export interface FailedTweetsResponse {
+  failed_tweets: FailedTweet[]
+  total_failed: number
+  limit: number
+  skip: number
+}
+
+export interface ImageProcessingRetryRequest {
+  max_tweets?: number
+  username?: string
+  force_reprocess?: boolean
+}
+
+export interface ImageProcessingRetryResponse {
+  success: boolean
+  message: string
+  data: {
+    processed_count: number
+    success_count: number
+    failed_count?: number
+    retry_count?: number
+    username?: string | null
+    force_reprocess?: boolean
+    filter?: string
+  }
+}

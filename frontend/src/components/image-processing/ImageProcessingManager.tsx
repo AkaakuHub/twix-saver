@@ -4,8 +4,8 @@ import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'
 import { useImageProcessing } from '../../hooks/useImageProcessing'
 import { formatJobDateTime } from '../../utils/dateFormat'
-import { ImageProcessingStatus } from '../../types/api'
-import type { ImageProcessingRetryRequest, FailedTweet } from '../../types/api'
+import { ImageProcessingStatus } from '../../types/api-custom'
+import type { ImageProcessingRetryRequest, FailedTweet } from '../../types/api-custom'
 
 export const ImageProcessingManager = () => {
   const {

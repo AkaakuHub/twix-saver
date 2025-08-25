@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { formatTweetCreatedAt, formatScrapedAt } from '../../utils/dateFormat'
-import { ImageProcessingStatus } from '../../types/api'
+import { ImageProcessingStatus } from '../../types/api-custom'
 import {
   HeartIcon,
   ArrowPathRoundedSquareIcon,
