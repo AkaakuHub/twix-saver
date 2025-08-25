@@ -10,7 +10,6 @@ import {
   ViewColumnsIcon,
   ListBulletIcon,
   ArrowUpIcon,
-  CogIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline'
 import { clsx } from 'clsx'
@@ -24,7 +23,6 @@ export const TweetList = () => {
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card')
   const [expandedTweets, setExpandedTweets] = useState<Set<string>>(new Set())
   const [showScrollTop, setShowScrollTop] = useState(false)
-  const [showManagementMode, setShowManagementMode] = useState(false)
 
   const { tweets, isLoading, total, error, hasMore, loadMore } = useTweets({
     search: searchFilters.query,
@@ -112,15 +110,6 @@ export const TweetList = () => {
             全再取得
           </Button>
 
-          <Button
-            variant={showManagementMode ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => setShowManagementMode(!showManagementMode)}
-            icon={<CogIcon className="w-4 h-4" />}
-          >
-            管理
-          </Button>
-
           <div className="border-l border-gray-200 h-6 mx-2" />
 
           <Button
@@ -203,7 +192,6 @@ export const TweetList = () => {
                 onExpand={handleTweetExpand}
                 onDelete={deleteTweet}
                 onRefreshUser={refreshUserTweets}
-                showManagementActions={showManagementMode}
               />
             ) : (
               <Card key={tweet.id} className="p-4 hover:bg-gray-50 transition-colors">

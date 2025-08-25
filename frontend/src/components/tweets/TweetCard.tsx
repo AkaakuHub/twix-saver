@@ -77,7 +77,6 @@ interface TweetCardProps {
   onDelete?: (tweetId: string) => void
   onRefreshUser?: (username: string) => void
   className?: string
-  showManagementActions?: boolean
 }
 
 export const TweetCard = ({
@@ -87,7 +86,6 @@ export const TweetCard = ({
   onDelete,
   onRefreshUser,
   className = '',
-  showManagementActions = false,
 }: TweetCardProps) => {
   const [isExpanded, setIsExpanded] = useState(expanded)
   const [showActions, setShowActions] = useState(false)
@@ -224,33 +222,31 @@ export const TweetCard = ({
                 </Badge>
               )}
 
-              {showManagementActions && (
-                <div className="relative" ref={actionsRef}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowActions(!showActions)}
-                    icon={<EllipsisHorizontalIcon className="w-4 h-4" />}
-                  />
-                  {showActions && (
-                    <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
-                      <button
-                        onClick={handleRefreshUser}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                      >
-                        <ArrowPathIcon className="w-4 h-4 mr-2" />@{tweet.author.username} を再取得
-                      </button>
-                      <button
-                        onClick={handleDelete}
-                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
-                      >
-                        <TrashIcon className="w-4 h-4 mr-2" />
-                        このツイートを削除
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div className="relative" ref={actionsRef}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowActions(!showActions)}
+                  icon={<EllipsisHorizontalIcon className="w-4 h-4" />}
+                />
+                {showActions && (
+                  <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
+                    <button
+                      onClick={handleRefreshUser}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                    >
+                      <ArrowPathIcon className="w-4 h-4 mr-2" />@{tweet.author.username} を再取得
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
+                    >
+                      <TrashIcon className="w-4 h-4 mr-2" />
+                      このツイートを削除
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <Button
                 variant="ghost"
