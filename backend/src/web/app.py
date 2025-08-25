@@ -4,7 +4,13 @@ TypeScript React フロントエンド用のバックエンドAPI
 """
 
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 from contextlib import asynccontextmanager
+
+# Load root .env file for port configuration
+root_env_path = Path(__file__).parent.parent.parent.parent / '.env'
+load_dotenv(root_env_path)
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -330,7 +336,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "src.web.app:app",
         host="0.0.0.0",
-        port=8000,
+        port=int(os.getenv('VITE_BACKEND_PORT', 8000)),
         reload=True,
         log_level="info"
     )

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAppStore } from '../stores/appStore'
 import type { ScrapingJobResponse, ScrapingJobCreate } from '../types/api'
 
-const API_BASE = 'http://localhost:8000/api'
+import { API_BASE } from '../config/env'
 
 export const useJobs = () => {
   const { addNotification } = useAppStore()

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
+import { API_BASE } from '../../config/env'
 import { ja } from 'date-fns/locale'
 import {
   CheckCircleIcon,
@@ -39,7 +40,7 @@ export const ActivityFeed = () => {
   const { data: activities = [], isLoading } = useQuery({
     queryKey: ['activity-feed'],
     queryFn: async (): Promise<ActivityItem[]> => {
-      const response = await fetch('http://localhost:8000/api/activities')
+      const response = await fetch(`${API_BASE}/activities`)
       if (!response.ok) {
         throw new Error('アクティビティの取得に失敗しました')
       }

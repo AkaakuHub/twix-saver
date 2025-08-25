@@ -7,10 +7,10 @@
     "frontend"
   ],
   "scripts": {
-    "dev:frontend": "cd frontend && pnpm run dev",
+    "dev:frontend": "pnpm run sync-env && cd frontend && pnpm run dev",
     "dev": "docker-compose up",
     "dev:watch": "docker-compose up --build",
-    "dev:backend": "pkill -f 'uvicorn.*src\\.web\\.app:app.*8000' || true && sleep 2 && docker-compose up -d mongodb && cd backend && source venv/bin/activate && uvicorn src.web.app:app --reload --host 0.0.0.0 --port 8000",
+    "dev:backend": "node scripts/start-backend.js",
     "dev:docker": "docker-compose up backend mongodb",
     "dev:docker-only": "docker-compose up backend",
     "build:frontend": "pnpm run generate-types && cd frontend && pnpm run build",
@@ -18,7 +18,8 @@
     "install:backend": "cd backend && pip install -r requirements.txt",
     "generate-types": "cd backend && ./venv/bin/python scripts/simple-generate.py",
     "check-types-sync": "cd backend && python3 scripts/check-type-sync.py",
-    "setup": "pnpm run install:frontend && pnpm run install:backend && pnpm run generate-types",
+    "sync-env": "cp .env frontend/.env",
+    "setup": "pnpm run install:frontend && pnpm run install:backend && pnpm run generate-types && pnpm run sync-env",
     "setup:docker": "cp backend/.env.example backend/.env && echo 'Please edit backend/.env with your Twitter credentials'",
     "lint:frontend": "cd frontend && pnpm run lint",
     "type-check:frontend": "cd frontend && pnpm run type-check",

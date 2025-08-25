@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { API_BASE } from '../../../config/env'
 import {
   LineChart,
   Line,
@@ -21,7 +22,7 @@ export const TweetsTimeChart = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['tweets-time-chart'],
     queryFn: async (): Promise<TweetTimeData[]> => {
-      const response = await fetch('http://localhost:8000/api/tweets/time-series?days=7')
+      const response = await fetch(`${API_BASE}/tweets/time-series?days=7`)
       if (!response.ok) {
         throw new Error('ツイート時系列データの取得に失敗しました')
       }

@@ -18,6 +18,7 @@ import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { ImageModal } from '../ui/ImageModal'
+import { BACKEND_URL } from '../../config/env'
 import { clsx } from 'clsx'
 
 interface Tweet {
@@ -162,10 +163,10 @@ export const TweetCard = ({
   const getMediaUrl = (media: { local_url?: string; media_id?: string }) => {
     // APIレスポンスのlocal_urlを使用（推奨）
     if (media.local_url) {
-      return `http://localhost:8000${media.local_url}`
+      return `${BACKEND_URL}${media.local_url}`
     }
     // フォールバック：media_idから構築
-    return `http://localhost:8000/api/tweets/media/${media.media_id}`
+    return `${BACKEND_URL}/api/tweets/media/${media.media_id}`
   }
 
   // 添付画像（Twitter画像）を取得

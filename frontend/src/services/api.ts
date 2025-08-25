@@ -5,10 +5,10 @@
 
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios'
 import { ApiError } from '../types'
+import { API_BASE } from '../config/env'
 
 const API_BASE_URL =
-  (import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE_URL ||
-  'http://localhost:8000/api'
+  (import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE_URL || API_BASE
 
 class ApiClient {
   private client: AxiosInstance
