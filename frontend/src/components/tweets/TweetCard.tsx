@@ -17,6 +17,7 @@ import {
 import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
+import { ImageModal } from '../ui/ImageModal'
 import { clsx } from 'clsx'
 
 interface Tweet {
@@ -90,6 +91,7 @@ export const TweetCard = ({
   const [isExpanded, setIsExpanded] = useState(expanded)
   const [showActions, setShowActions] = useState(false)
   const [showLinkedImages, setShowLinkedImages] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const actionsRef = useRef<HTMLDivElement>(null)
 
   const toggleExpanded = () => {
@@ -181,180 +183,121 @@ export const TweetCard = ({
     tweet.extracted_articles && tweet.extracted_articles.length > (maxVisibleArticles || 0)
 
   return (
-    <Card className={clsx('transition-all duration-200', className)}>
-      <div className="p-6">
-        {/* ヘッダー */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            {tweet.author.profile_image_url && (
-              <img
-                src={tweet.author.profile_image_url}
-                alt={tweet.author.display_name}
-                className="w-12 h-12 rounded-full object-cover"
-              />
-            )}
-            <div>
-              <div className="flex items-center space-x-2">
-                <h3 className="font-semibold text-gray-900">{tweet.author.display_name}</h3>
-                <span className="text-gray-500 text-sm">@{tweet.author.username}</span>
+    <>
+      <Card className={clsx('transition-all duration-200', className)}>
+        <div className="p-6">
+          {/* ヘッダー */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              {tweet.author.profile_image_url && (
+                <img
+                  src={tweet.author.profile_image_url}
+                  alt={tweet.author.display_name}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+              )}
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h3 className="font-semibold text-gray-900">{tweet.author.display_name}</h3>
+                  <span className="text-gray-500 text-sm">@{tweet.author.username}</span>
+                </div>
+                <p className="text-gray-500 text-sm">
+                  {format(new Date(tweet.created_at), 'MM/dd HH:mm', { locale: ja })}
+                </p>
               </div>
-              <p className="text-gray-500 text-sm">
-                {format(new Date(tweet.created_at), 'MM/dd HH:mm', { locale: ja })}
-              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {/* コンテンツタイプバッジ */}
+              {(attachedImages.length > 0 || linkedImages.length > 0) && (
+                <Badge variant="info" size="sm">
+                  <PhotoIcon className="w-3 h-3 mr-1" />
+                  メディア {attachedImages.length + linkedImages.length}
+                </Badge>
+              )}
+
+              {tweet.extracted_articles && tweet.extracted_articles.length > 0 && (
+                <Badge variant="success" size="sm">
+                  <DocumentTextIcon className="w-3 h-3 mr-1" />
+                  記事 {tweet.extracted_articles.length}
+                </Badge>
+              )}
+
+              {showManagementActions && (
+                <div className="relative" ref={actionsRef}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowActions(!showActions)}
+                    icon={<EllipsisHorizontalIcon className="w-4 h-4" />}
+                  />
+                  {showActions && (
+                    <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
+                      <button
+                        onClick={handleRefreshUser}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                      >
+                        <ArrowPathIcon className="w-4 h-4 mr-2" />@{tweet.author.username} を再取得
+                      </button>
+                      <button
+                        onClick={handleDelete}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
+                      >
+                        <TrashIcon className="w-4 h-4 mr-2" />
+                        このツイートを削除
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleExpanded}
+                icon={
+                  isExpanded ? (
+                    <ChevronUpIcon className="w-4 h-4" />
+                  ) : (
+                    <ChevronDownIcon className="w-4 h-4" />
+                  )
+                }
+              />
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            {/* コンテンツタイプバッジ */}
-            {(attachedImages.length > 0 || linkedImages.length > 0) && (
-              <Badge variant="info" size="sm">
-                <PhotoIcon className="w-3 h-3 mr-1" />
-                メディア {attachedImages.length + linkedImages.length}
-              </Badge>
-            )}
-
-            {tweet.extracted_articles && tweet.extracted_articles.length > 0 && (
-              <Badge variant="success" size="sm">
-                <DocumentTextIcon className="w-3 h-3 mr-1" />
-                記事 {tweet.extracted_articles.length}
-              </Badge>
-            )}
-
-            {showManagementActions && (
-              <div className="relative" ref={actionsRef}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowActions(!showActions)}
-                  icon={<EllipsisHorizontalIcon className="w-4 h-4" />}
-                />
-                {showActions && (
-                  <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
-                    <button
-                      onClick={handleRefreshUser}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                    >
-                      <ArrowPathIcon className="w-4 h-4 mr-2" />@{tweet.author.username} を再取得
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
-                    >
-                      <TrashIcon className="w-4 h-4 mr-2" />
-                      このツイートを削除
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleExpanded}
-              icon={
-                isExpanded ? (
-                  <ChevronUpIcon className="w-4 h-4" />
-                ) : (
-                  <ChevronDownIcon className="w-4 h-4" />
-                )
-              }
-            />
+          {/* ツイート本文 */}
+          <div
+            className={clsx('text-gray-900 mb-4 leading-relaxed', !isExpanded && 'line-clamp-3')}
+          >
+            {renderText(tweet.text)}
           </div>
-        </div>
 
-        {/* ツイート本文 */}
-        <div className={clsx('text-gray-900 mb-4 leading-relaxed', !isExpanded && 'line-clamp-3')}>
-          {renderText(tweet.text)}
-        </div>
-
-        {/* メディア表示 */}
-        {(attachedImages.length > 0 || linkedImages.length > 0) && (
-          <div className="mb-4">
-            {/* 添付画像（Twitter画像）*/}
-            {attachedImages.length > 0 && (
-              <div className="mb-3">
-                <div className="text-sm text-gray-600 mb-2 flex items-center">
-                  <PhotoIcon className="w-4 h-4 mr-1" />
-                  添付画像 ({attachedImages.length}件)
-                </div>
-                <div
-                  className={clsx(
-                    'grid gap-3 rounded-lg overflow-hidden',
-                    attachedImages.length === 1
-                      ? 'grid-cols-1'
-                      : attachedImages.length === 2
-                        ? 'grid-cols-2'
-                        : 'grid-cols-2 md:grid-cols-3'
-                  )}
-                >
-                  {attachedVisibleMedia.map((media, index) => (
-                    <div
-                      key={`attached-${index}`}
-                      className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                      onClick={() => window.open(getMediaUrl(media), '_blank')}
-                    >
-                      <img
-                        src={getMediaUrl(media)}
-                        alt=""
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      <div className="absolute bottom-1 right-1 bg-black bg-opacity-70 text-white text-xs px-1.5 py-0.5 rounded">
-                        {(media.size / 1024).toFixed(0)}KB
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {hasMoreAttachedMedia && (
-                  <button
-                    onClick={() => setIsExpanded(true)}
-                    className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    他 {attachedImages.length - attachedVisibleMedia.length} 件の添付画像を表示
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* リンク先画像（折りたたみ式） */}
-            {linkedImages.length > 0 && (
-              <div className="mb-3">
-                <button
-                  onClick={() => setShowLinkedImages(!showLinkedImages)}
-                  className="w-full text-left text-sm text-gray-600 mb-2 flex items-center justify-between bg-gray-50 hover:bg-gray-100 p-3 rounded-lg transition-colors"
-                >
-                  <div className="flex items-center">
-                    <ArrowTopRightOnSquareIcon className="w-4 h-4 mr-1" />
-                    リンク先画像 ({linkedImages.length}件)
+          {/* メディア表示 */}
+          {(attachedImages.length > 0 || linkedImages.length > 0) && (
+            <div className="mb-4">
+              {/* 添付画像（Twitter画像）*/}
+              {attachedImages.length > 0 && (
+                <div className="mb-3">
+                  <div className="text-sm text-gray-600 mb-2 flex items-center">
+                    <PhotoIcon className="w-4 h-4 mr-1" />
+                    添付画像 ({attachedImages.length}件)
                   </div>
-                  <div className="flex items-center">
-                    <span className="text-xs mr-2">{showLinkedImages ? '非表示' : '表示'}</span>
-                    {showLinkedImages ? (
-                      <ChevronUpIcon className="w-4 h-4" />
-                    ) : (
-                      <ChevronDownIcon className="w-4 h-4" />
-                    )}
-                  </div>
-                </button>
-
-                {showLinkedImages && (
                   <div
                     className={clsx(
-                      'grid gap-3 rounded-lg overflow-hidden animate-in slide-in-from-top-2 duration-200',
-                      linkedImages.length === 1
+                      'grid gap-3 rounded-lg overflow-hidden',
+                      attachedImages.length === 1
                         ? 'grid-cols-1'
-                        : linkedImages.length === 2
+                        : attachedImages.length === 2
                           ? 'grid-cols-2'
                           : 'grid-cols-2 md:grid-cols-3'
                     )}
                   >
-                    {linkedImages.map((media, index) => (
+                    {attachedVisibleMedia.map((media, index) => (
                       <div
-                        key={`linked-${index}`}
+                        key={`attached-${index}`}
                         className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                        onClick={() => window.open(media.original_url, '_blank')}
+                        onClick={() => setSelectedImage(getMediaUrl(media))}
                       >
                         <img
                           src={getMediaUrl(media)}
@@ -365,100 +308,171 @@ export const TweetCard = ({
                         <div className="absolute bottom-1 right-1 bg-black bg-opacity-70 text-white text-xs px-1.5 py-0.5 rounded">
                           {(media.size / 1024).toFixed(0)}KB
                         </div>
-                        <div className="absolute top-1 right-1 bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded">
-                          リンク
-                        </div>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* 記事プレビュー */}
-        {visibleArticles.length > 0 && (
-          <div className="mb-4 space-y-3">
-            {visibleArticles.map((article, index) => (
-              <div
-                key={index}
-                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex space-x-4">
-                  {article.image && (
-                    <img
-                      src={article.image}
-                      alt=""
-                      className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
-                    />
+                  {hasMoreAttachedMedia && (
+                    <button
+                      onClick={() => setIsExpanded(true)}
+                      className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      他 {attachedImages.length - attachedVisibleMedia.length} 件の添付画像を表示
+                    </button>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">
-                      {article.title}
-                    </h4>
-                    {article.description && (
-                      <p className="text-gray-600 text-sm line-clamp-2 mb-2">
-                        {article.description}
-                      </p>
+                </div>
+              )}
+
+              {/* リンク先画像（折りたたみ式） */}
+              {linkedImages.length > 0 && (
+                <div className="mb-3">
+                  <button
+                    onClick={() => setShowLinkedImages(!showLinkedImages)}
+                    className="w-full text-left text-sm text-gray-600 mb-2 flex items-center justify-between bg-gray-50 hover:bg-gray-100 p-3 rounded-lg transition-colors"
+                  >
+                    <div className="flex items-center">
+                      <ArrowTopRightOnSquareIcon className="w-4 h-4 mr-1" />
+                      リンク先画像 ({linkedImages.length}件)
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-xs mr-2">{showLinkedImages ? '非表示' : '表示'}</span>
+                      {showLinkedImages ? (
+                        <ChevronUpIcon className="w-4 h-4" />
+                      ) : (
+                        <ChevronDownIcon className="w-4 h-4" />
+                      )}
+                    </div>
+                  </button>
+
+                  {showLinkedImages && (
+                    <div
+                      className={clsx(
+                        'grid gap-3 rounded-lg overflow-hidden animate-in slide-in-from-top-2 duration-200',
+                        linkedImages.length === 1
+                          ? 'grid-cols-1'
+                          : linkedImages.length === 2
+                            ? 'grid-cols-2'
+                            : 'grid-cols-2 md:grid-cols-3'
+                      )}
+                    >
+                      {linkedImages.map((media, index) => (
+                        <div
+                          key={`linked-${index}`}
+                          className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                          onClick={() => setSelectedImage(getMediaUrl(media))}
+                        >
+                          <img
+                            src={getMediaUrl(media)}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          <div className="absolute bottom-1 right-1 bg-black bg-opacity-70 text-white text-xs px-1.5 py-0.5 rounded">
+                            {(media.size / 1024).toFixed(0)}KB
+                          </div>
+                          <div className="absolute top-1 right-1 bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded">
+                            リンク
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 記事プレビュー */}
+          {visibleArticles.length > 0 && (
+            <div className="mb-4 space-y-3">
+              {visibleArticles.map((article, index) => (
+                <div
+                  key={index}
+                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex space-x-4">
+                    {article.image && (
+                      <img
+                        src={article.image}
+                        alt=""
+                        className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                      />
                     )}
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-500 text-xs">
-                        {article.domain || new URL(article.url).hostname}
-                      </span>
-                      <a
-                        href={article.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 text-xs flex items-center"
-                      >
-                        読む
-                        <ArrowTopRightOnSquareIcon className="w-3 h-3 ml-1" />
-                      </a>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">
+                        {article.title}
+                      </h4>
+                      {article.description && (
+                        <p className="text-gray-600 text-sm line-clamp-2 mb-2">
+                          {article.description}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 text-xs">
+                          {article.domain || new URL(article.url).hostname}
+                        </span>
+                        <a
+                          href={article.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 text-xs flex items-center"
+                        >
+                          読む
+                          <ArrowTopRightOnSquareIcon className="w-3 h-3 ml-1" />
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
+              ))}
+
+              {hasMoreArticles && (
+                <button
+                  onClick={() => setIsExpanded(true)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  他 {tweet.extracted_articles!.length - visibleArticles.length} 件の記事を表示
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* エンゲージメント統計 */}
+          <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+            <div className="flex items-center space-x-6 text-sm text-gray-600">
+              <div className="flex items-center space-x-1">
+                <HeartIcon className="w-4 h-4" />
+                <span>{formatNumber(tweet.public_metrics.like_count)}</span>
               </div>
-            ))}
-
-            {hasMoreArticles && (
-              <button
-                onClick={() => setIsExpanded(true)}
-                className="text-sm text-blue-600 hover:text-blue-800"
-              >
-                他 {tweet.extracted_articles!.length - visibleArticles.length} 件の記事を表示
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* エンゲージメント統計 */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <div className="flex items-center space-x-6 text-sm text-gray-600">
-            <div className="flex items-center space-x-1">
-              <HeartIcon className="w-4 h-4" />
-              <span>{formatNumber(tweet.public_metrics.like_count)}</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <ArrowPathRoundedSquareIcon className="w-4 h-4" />
-              <span>{formatNumber(tweet.public_metrics.retweet_count)}</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <ChatBubbleOvalLeftIcon className="w-4 h-4" />
-              <span>{formatNumber(tweet.public_metrics.reply_count)}</span>
-            </div>
-          </div>
-
-          <div className="text-xs text-gray-500 text-right">
-            <div>総エンゲージメント: {formatNumber(getTotalEngagement())}</div>
-            {tweet.scraped_at && (
-              <div className="mt-1">
-                {format(new Date(tweet.scraped_at), 'M月d日 H時', { locale: ja })}時点
+              <div className="flex items-center space-x-1">
+                <ArrowPathRoundedSquareIcon className="w-4 h-4" />
+                <span>{formatNumber(tweet.public_metrics.retweet_count)}</span>
               </div>
-            )}
+              <div className="flex items-center space-x-1">
+                <ChatBubbleOvalLeftIcon className="w-4 h-4" />
+                <span>{formatNumber(tweet.public_metrics.reply_count)}</span>
+              </div>
+            </div>
+
+            <div className="text-xs text-gray-500 text-right">
+              <div>総エンゲージメント: {formatNumber(getTotalEngagement())}</div>
+              {tweet.scraped_at && (
+                <div className="mt-1">
+                  {format(new Date(tweet.scraped_at), 'M月d日 H時', { locale: ja })}時点
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+
+      {/* Image Modal */}
+      <ImageModal
+        isOpen={selectedImage !== null}
+        onClose={() => setSelectedImage(null)}
+        imageUrl={selectedImage || ''}
+        altText="ツイート画像"
+      />
+    </>
   )
 }
