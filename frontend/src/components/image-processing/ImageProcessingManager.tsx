@@ -5,7 +5,7 @@ import { Badge } from '../ui/Badge'
 import { useImageProcessing } from '../../hooks/useImageProcessing'
 import { formatJobDateTime } from '../../utils/dateFormat'
 import { ImageProcessingStatus } from '../../types/api'
-import type { ImageProcessingRetryRequest } from '../../types/api'
+import type { ImageProcessingRetryRequest, FailedTweet } from '../../types/api'
 
 export const ImageProcessingManager = () => {
   const {
@@ -75,7 +75,11 @@ export const ImageProcessingManager = () => {
       [ImageProcessingStatus.SKIPPED]: 'default',
     } as const
 
-    return <Badge variant={variants[status as keyof typeof variants] || 'default'}>{count}件</Badge>
+    return (
+      <Badge variant={variants[status as keyof typeof variants] || 'default'}>
+        {Number(count)}件
+      </Badge>
+    )
   }
 
   return (
@@ -161,7 +165,7 @@ export const ImageProcessingManager = () => {
                       <span className="text-sm text-gray-600">
                         {labels[status as keyof typeof labels] || status}:
                       </span>
-                      {getStatusBadge(status, count)}
+                      {getStatusBadge(status, Number(count))}
                     </div>
                   )
                 })}
@@ -293,7 +297,7 @@ export const ImageProcessingManager = () => {
 
           {failedTweets?.failed_tweets.length ? (
             <div className="space-y-3">
-              {failedTweets.failed_tweets.map(tweet => (
+              {failedTweets.failed_tweets.map((tweet: FailedTweet) => (
                 <div
                   key={tweet.id_str}
                   className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg"

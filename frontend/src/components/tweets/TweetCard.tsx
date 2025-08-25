@@ -150,7 +150,7 @@ export const TweetCard = ({
       },
     }
 
-    const config = statusConfig[status as keyof typeof statusConfig]
+    const config = statusConfig[status as ImageProcessingStatus]
     if (!config) return null
 
     return (
