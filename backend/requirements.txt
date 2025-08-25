@@ -19,3 +19,6 @@ cryptography==42.0.5
 
 # Type Generation Tools
 pydantic-to-typescript>=2.0.0
+
+# Code Quality Tools
+ruff==0.12.10

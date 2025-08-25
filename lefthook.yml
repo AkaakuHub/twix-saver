@@ -25,6 +25,18 @@ pre-commit:
       root: "frontend/"
       glob: "**/*.{ts,tsx}"
       run: pnpm run type-check
+    
+    backend-format:
+      root: "backend/"
+      glob: "**/*.py"
+      run: ruff format .
+      stage_fixed: true
+    
+    backend-lint:
+      root: "backend/"
+      glob: "**/*.py"
+      run: ruff check --fix .
+      stage_fixed: true
 
 pre-push:
   commands:
@@ -45,3 +57,11 @@ pre-push:
     
     build-test:
       run: pnpm run build:frontend
+    
+    backend-format-check:
+      root: "backend/"
+      run: ruff format --check .
+    
+    backend-lint-check:
+      root: "backend/"
+      run: ruff check .
