@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { toast } from 'react-hot-toast'
 import type {
   ImageProcessingStats,
@@ -24,7 +24,7 @@ export const useImageProcessing = () => {
   /**
    * 画像処理統計を取得
    */
-  const fetchStats = async (): Promise<ImageProcessingStats | null> => {
+  const fetchStats = useCallback(async (): Promise<ImageProcessingStats | null> => {
     try {
       setLoading(true)
       const response = await fetch(`${API_BASE}/image-processing/stats`)
@@ -38,12 +38,11 @@ export const useImageProcessing = () => {
       return data
     } catch (error) {
       console.error('画像処理統計取得エラー:', error)
-      toast.error('統計情報の取得に失敗しました')
       return null
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   /**
    * 失敗ツイート一覧を取得

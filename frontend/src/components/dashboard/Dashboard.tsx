@@ -18,7 +18,7 @@ import { useState, useEffect } from 'react'
 export const Dashboard = () => {
   const { users = [], isLoading: usersLoading } = useUsers()
   const { data: activeJobs = [], isLoading: activeJobsLoading } = useActiveJobs()
-  const { isLoading: jobStatsLoading } = useJobStats()
+  const { data: jobStats, isLoading: jobStatsLoading } = useJobStats()
   const { data: tweetStats, isLoading: tweetStatsLoading } = useTweetStats()
   const { stats: imageStats, fetchStats: fetchImageStats } = useImageProcessing()
   const { createJob, isCreating, startAllJobs, stopAllJobs, isStarting, isStopping } = useJobs()
@@ -26,8 +26,24 @@ export const Dashboard = () => {
 
   // 画像処理統計を取得
   useEffect(() => {
-    fetchImageStats()
+    fetchImageStats().catch(() => {
+      // エラーは既にログ出力されているので、ここでは何もしない
+    })
   }, [fetchImageStats])
+
+  const calculateSuccessRate = () => {
+    if (!jobStats || typeof jobStats !== 'object') return 0
+    const stats = jobStats as {
+      completed_jobs?: number
+      total_jobs?: number
+      success_rate?: number
+    }
+    // success_rateが直接利用可能な場合はそれを使用
+    if (stats.success_rate !== undefined) return Math.round(stats.success_rate)
+    // そうでなければ計算
+    if (!stats.total_jobs || stats.total_jobs === 0) return 0
+    return Math.round(((stats.completed_jobs || 0) / stats.total_jobs) * 100)
+  }
 
   const isLoading = usersLoading || activeJobsLoading || jobStatsLoading || tweetStatsLoading
 
@@ -61,7 +77,7 @@ export const Dashboard = () => {
       </div>
 
       {/* 統計カード */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatsCard
           title="監視ユーザー数"
           value={(users as unknown[]).length || 0}
@@ -79,6 +95,13 @@ export const Dashboard = () => {
           value={(activeJobs as unknown[]).length || 0}
           icon="jobs"
           color="yellow"
+        />
+        <StatsCard
+          title="ジョブ成功率"
+          value={calculateSuccessRate()}
+          icon="success"
+          color="red"
+          suffix="%"
         />
         <StatsCard
           title="画像処理成功率"
