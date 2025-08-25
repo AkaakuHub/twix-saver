@@ -16,8 +16,8 @@ from pymongo.database import Database
 from pymongo.errors import PyMongoError
 
 from src.config.settings import settings
+from src.utils.batch_processor import batch_processor
 from src.utils.logger import setup_logger
-from src.utils.media_processor import media_processor
 
 
 class JSONLProcessor:
@@ -389,10 +389,10 @@ class DataIngestService:
         self.logger.info(f"{len(jsonl_files)}個のJSONLファイルを処理開始")
 
         processed_files = []
-        async with media_processor:
-            for filepath in jsonl_files:
-                if await self._async_process_single_file(filepath):
-                    processed_files.append(filepath)
+        # バッチ処理システムが内部でmedia_processorを管理するため、外側のコンテキスト不要
+        for filepath in jsonl_files:
+            if await self._async_process_single_file(filepath):
+                processed_files.append(filepath)
 
         # DB挿入成功したファイルのみ削除
         if processed_files:
@@ -419,31 +419,22 @@ class DataIngestService:
                 elif self._is_article_data(item):
                     articles.append(item)
 
-            # ツイートのメディア処理を実行
+            # ツイートのバッチ処理（画像処理含む）を実行
             if tweets:
-                self.logger.info(f"ツイートのメディア処理を開始: {len(tweets)}件")
-                processed_tweets = []
+                self.logger.info(f"ツイートのバッチ処理を開始: {len(tweets)}件")
+                processed_count, success_count, failed_count = await batch_processor.process_tweets_with_images_batch(
+                    tweets, self.mongodb
+                )
 
-                for tweet in tweets:
-                    try:
-                        # メディア処理を実行（db_managerを渡す）
-                        processed_tweet = await media_processor.process_tweet_media(tweet, self.mongodb)
-                        processed_tweets.append(processed_tweet)
-                    except Exception as e:
-                        self.logger.warning(f"ツイート {tweet.get('id_str', 'unknown')} のメディア処理エラー: {e}")
-                        # エラーでも元のツイートは保存
-                        processed_tweets.append(tweet)
+                # 統計を更新
+                self.processed_tweets += processed_count
 
-                tweets = processed_tweets
+                self.logger.info(
+                    f"バッチ処理完了: {processed_count}件処理, 画像処理成功: {success_count}件, 失敗: {failed_count}件"
+                )
 
-            # MongoDBに挿入
+            # MongoDBに挿入（記事のみ - ツイートは既にバッチ処理で挿入済み）
             success = True
-            if tweets:
-                inserted_tweets = self.mongodb.insert_tweets(tweets)
-                if inserted_tweets == 0 and len(tweets) > 0:
-                    success = False
-                else:
-                    self.processed_tweets += inserted_tweets
 
             if articles:
                 inserted_articles = self.mongodb.insert_articles(articles)
@@ -470,8 +461,8 @@ class DataIngestService:
 
     async def _async_process_single_file_wrapper(self, filepath: Path) -> bool:
         """単一ファイル処理の非同期ラッパー"""
-        async with media_processor:
-            return await self._async_process_single_file(filepath)
+        # バッチ処理システムが内部でmedia_processorを管理するため、外側のコンテキスト不要
+        return await self._async_process_single_file(filepath)
 
     def _is_tweet_data(self, item: dict) -> bool:
         """ツイートデータかどうかを判定"""
@@ -510,3 +501,4 @@ class DataIngestService:
 jsonl_processor = JSONLProcessor()
 mongodb_manager = MongoDBManager()
 data_ingest_service = DataIngestService()
+data_manager = data_ingest_service  # 互換性のためのエイリアス

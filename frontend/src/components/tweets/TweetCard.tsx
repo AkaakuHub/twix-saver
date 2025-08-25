@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { formatTweetCreatedAt, formatScrapedAt } from '../../utils/dateFormat'
+import { ImageProcessingStatus } from '../../types/api'
 import {
   HeartIcon,
   ArrowPathRoundedSquareIcon,
@@ -69,6 +70,11 @@ interface Tweet {
     type: 'retweeted' | 'quoted' | 'replied_to'
     id: string
   }
+  // 画像処理状態
+  image_processing_status?: string
+  image_processing_error?: string
+  image_processing_retry_count?: number
+  image_processing_completed_at?: string
 }
 
 interface TweetCardProps {
@@ -109,6 +115,44 @@ export const TweetCard = ({
   const handleRefreshTweet = () => {
     onRefreshTweet?.(tweet.id)
     setShowActions(false)
+  }
+
+  // 画像処理ステータス表示用の関数
+  const getImageProcessingBadge = () => {
+    const status = tweet.image_processing_status
+    if (!status || status === 'skipped') return null
+
+    const statusConfig = {
+      [ImageProcessingStatus.PENDING]: {
+        icon: '📸⏸️',
+        label: '未処理',
+        variant: 'warning' as const,
+      },
+      [ImageProcessingStatus.PROCESSING]: {
+        icon: '📸⏳',
+        label: '処理中',
+        variant: 'info' as const,
+      },
+      [ImageProcessingStatus.COMPLETED]: {
+        icon: '📸✅',
+        label: '完了',
+        variant: 'success' as const,
+      },
+      [ImageProcessingStatus.FAILED]: {
+        icon: '📸❌',
+        label: '失敗',
+        variant: 'error' as const,
+      },
+    }
+
+    const config = statusConfig[status as keyof typeof statusConfig]
+    if (!config) return null
+
+    return (
+      <Badge variant={config.variant} size="sm">
+        {config.icon} {config.label}
+      </Badge>
+    )
   }
 
   // 外部クリック時にアクションメニューを閉じる
@@ -251,6 +295,9 @@ export const TweetCard = ({
             </div>
 
             <div className="flex items-center space-x-2">
+              {/* 画像処理ステータスバッジ */}
+              {getImageProcessingBadge()}
+
               {/* コンテンツタイプバッジ */}
               {(attachedImages.length > 0 || linkedImages.length > 0) && (
                 <Badge variant="info" size="sm">
@@ -314,6 +361,24 @@ export const TweetCard = ({
           >
             {renderText(tweet.text)}
           </div>
+
+          {/* 画像処理エラー表示 */}
+          {tweet.image_processing_status === 'failed' && tweet.image_processing_error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <span className="text-red-500 text-sm">⚠️</span>
+                <div className="flex-1">
+                  <p className="text-red-800 text-sm font-medium">画像処理エラー</p>
+                  <p className="text-red-600 text-sm mt-1">{tweet.image_processing_error}</p>
+                  {tweet.image_processing_retry_count && (
+                    <p className="text-red-500 text-xs mt-1">
+                      リトライ回数: {tweet.image_processing_retry_count}回
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* メディア表示 */}
           {(attachedImages.length > 0 || linkedImages.length > 0) && (

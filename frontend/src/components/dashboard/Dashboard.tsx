@@ -1,6 +1,7 @@
 import { useActiveJobs, useJobStats, useJobs } from '../../hooks/useJobs'
 import { useTweetStats } from '../../hooks/useTweets'
 import { useUsers } from '../../hooks/useUsers'
+import { useImageProcessing } from '../../hooks/useImageProcessing'
 import type { ScrapingJobResponse } from '../../types/api'
 import { StatsCard } from './StatsCard'
 import { ActivityFeed } from './ActivityFeed'
@@ -12,29 +13,21 @@ import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
 import { JobForm } from '../jobs/JobForm'
 import { PlusIcon, PlayIcon, StopIcon } from '@heroicons/react/24/outline'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export const Dashboard = () => {
   const { users = [], isLoading: usersLoading } = useUsers()
   const { data: activeJobs = [], isLoading: activeJobsLoading } = useActiveJobs()
-  const { data: jobStats, isLoading: jobStatsLoading } = useJobStats()
+  const { isLoading: jobStatsLoading } = useJobStats()
   const { data: tweetStats, isLoading: tweetStatsLoading } = useTweetStats()
+  const { stats: imageStats, fetchStats: fetchImageStats } = useImageProcessing()
   const { createJob, isCreating, startAllJobs, stopAllJobs, isStarting, isStopping } = useJobs()
   const [isJobModalOpen, setIsJobModalOpen] = useState(false)
 
-  const calculateSuccessRate = () => {
-    if (!jobStats || typeof jobStats !== 'object') return 0
-    const stats = jobStats as {
-      completed_jobs?: number
-      total_jobs?: number
-      success_rate?: number
-    }
-    // success_rateが直接利用可能な場合はそれを使用
-    if (stats.success_rate !== undefined) return Math.round(stats.success_rate)
-    // そうでなければ計算
-    if (!stats.total_jobs || stats.total_jobs === 0) return 0
-    return Math.round(((stats.completed_jobs || 0) / stats.total_jobs) * 100)
-  }
+  // 画像処理統計を取得
+  useEffect(() => {
+    fetchImageStats()
+  }, [fetchImageStats])
 
   const isLoading = usersLoading || activeJobsLoading || jobStatsLoading || tweetStatsLoading
 
@@ -88,8 +81,8 @@ export const Dashboard = () => {
           color="yellow"
         />
         <StatsCard
-          title="ジョブ成功率"
-          value={calculateSuccessRate()}
+          title="画像処理成功率"
+          value={imageStats?.success_rate || 0}
           icon="success"
           color="purple"
           suffix="%"

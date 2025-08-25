@@ -478,6 +478,75 @@ async def get_media_file(media_id: str):
         raise HTTPException(status_code=500, detail="\1") from None
 
 
+@router.delete("/all")
+async def delete_all_tweets():
+    """全ツイートの削除（メディアファイル含む）"""
+    try:
+        if not mongodb_manager.is_connected:
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
+
+        logger.warning("全ツイート削除が要求されました")
+
+        # 全ツイート数を取得
+        total_tweets = mongodb_manager.tweets_collection.count_documents({})
+
+        if total_tweets == 0:
+            return {"message": "削除するツイートがありません", "deleted_tweets": 0, "deleted_media_files": 0}
+
+        # メディアファイルを含むツイートを取得
+        tweets_with_media = list(
+            mongodb_manager.tweets_collection.find(
+                {"downloaded_media": {"$exists": True, "$ne": []}}, {"downloaded_media": 1}
+            )
+        )
+
+        media_files_deleted = 0
+
+        # メディアファイルを削除
+        for tweet in tweets_with_media:
+            if downloaded_media := tweet.get("downloaded_media"):
+                for media in downloaded_media:
+                    if media_id := media.get("media_id"):
+                        try:
+                            # メディアファイルのレコードを取得
+                            media_record = mongodb_manager.db.media_files.find_one({"_id": media_id})
+                            if media_record and "file_path" in media_record:
+                                # ファイルシステムから削除
+                                from pathlib import Path
+
+                                from src.config.settings import settings
+
+                                file_path = Path(settings.images_dir) / media_record["file_path"]
+                                if file_path.exists():
+                                    file_path.unlink()
+                                    logger.debug(f"メディアファイルを削除: {file_path}")
+
+                                # DBレコードを削除
+                                mongodb_manager.db.media_files.delete_one({"_id": media_id})
+                                media_files_deleted += 1
+
+                        except Exception as e:
+                            logger.warning(f"メディアファイル削除エラー ({media_id}): {e}")
+
+        # 全ツイートを削除
+        result = mongodb_manager.tweets_collection.delete_many({})
+        deleted_tweets = result.deleted_count
+
+        logger.warning(f"全ツイート削除完了: ツイート {deleted_tweets}件, メディア {media_files_deleted}件")
+
+        return {
+            "message": f"全ツイートを削除しました: {deleted_tweets}件のツイートと{media_files_deleted}件のメディアファイル",
+            "deleted_tweets": deleted_tweets,
+            "deleted_media_files": media_files_deleted,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"全ツイート削除エラー: {e}")
+        raise HTTPException(status_code=500, detail=f"全ツイート削除エラー: {str(e)}") from None
+
+
 @router.delete("/{tweet_id}")
 async def delete_tweet(tweet_id: str):
     """ツイートを削除"""

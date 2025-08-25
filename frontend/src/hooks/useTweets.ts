@@ -215,6 +215,7 @@ export const useTweetManagement = () => {
 
   // 単体ツイート削除
   const deleteTweetMutation = useMutation({
+    mutationKey: ['deleteTweet'],
     mutationFn: async (tweetId: string): Promise<void> => {
       const response = await fetch(`${API_BASE}/tweets/${tweetId}`, {
         method: 'DELETE',
@@ -243,6 +244,7 @@ export const useTweetManagement = () => {
 
   // 一括削除
   const deleteTweetsBulkMutation = useMutation({
+    mutationKey: ['deleteTweetsBulk'],
     mutationFn: async (tweetIds: string[]): Promise<void> => {
       const response = await fetch(`${API_BASE}/tweets/bulk`, {
         method: 'DELETE',
@@ -273,6 +275,7 @@ export const useTweetManagement = () => {
 
   // 全ツイート再取得
   const refreshAllTweetsMutation = useMutation({
+    mutationKey: ['refreshAllTweets'],
     mutationFn: async (): Promise<void> => {
       const response = await fetch(`${API_BASE}/tweets/refresh`, {
         method: 'POST',
@@ -301,6 +304,7 @@ export const useTweetManagement = () => {
 
   // ユーザー別ツイート再取得
   const refreshUserTweetsMutation = useMutation({
+    mutationKey: ['refreshUserTweets'],
     mutationFn: async (username: string): Promise<void> => {
       const response = await fetch(`${API_BASE}/tweets/refresh/${username}`, {
         method: 'POST',
@@ -329,6 +333,7 @@ export const useTweetManagement = () => {
 
   // 特定ツイート再取得
   const refreshTweetMutation = useMutation({
+    mutationKey: ['refreshTweet'],
     mutationFn: async (tweetId: string): Promise<void> => {
       const response = await fetch(`${API_BASE}/tweets/refresh/tweet/${tweetId}`, {
         method: 'POST',
@@ -355,14 +360,47 @@ export const useTweetManagement = () => {
     },
   })
 
+  // 全ツイート削除
+  const deleteAllTweetsMutation = useMutation({
+    mutationKey: ['deleteAllTweets'],
+    mutationFn: async (): Promise<{ deleted_tweets: number; deleted_media_files: number }> => {
+      const response = await fetch(`${API_BASE}/tweets/all`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || '全ツイート削除に失敗しました')
+      }
+      return response.json()
+    },
+    onSuccess: result => {
+      queryClient.invalidateQueries({ queryKey: ['tweets'] })
+      queryClient.invalidateQueries({ queryKey: ['tweet-stats'] })
+      addNotification({
+        type: 'success',
+        title: '全ツイートを削除しました',
+        message: `${result.deleted_tweets}件のツイートと${result.deleted_media_files}件のメディアファイルを削除しました`,
+      })
+    },
+    onError: (error: Error) => {
+      addNotification({
+        type: 'error',
+        title: '全ツイート削除エラー',
+        message: error.message,
+      })
+    },
+  })
+
   return {
     deleteTweet: deleteTweetMutation.mutate,
     deleteTweetsBulk: deleteTweetsBulkMutation.mutate,
+    deleteAllTweets: deleteAllTweetsMutation.mutate,
     refreshAllTweets: refreshAllTweetsMutation.mutate,
     refreshUserTweets: refreshUserTweetsMutation.mutate,
     refreshTweet: refreshTweetMutation.mutate,
     isDeleting: deleteTweetMutation.isPending,
     isDeletingBulk: deleteTweetsBulkMutation.isPending,
+    isDeletingAll: deleteAllTweetsMutation.isPending,
     isRefreshing: refreshAllTweetsMutation.isPending,
     isRefreshingUser: refreshUserTweetsMutation.isPending,
     isRefreshingTweet: refreshTweetMutation.isPending,

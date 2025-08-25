@@ -20,7 +20,7 @@ from src.services.user_service import user_service
 from src.utils.data_manager import mongodb_manager
 from src.utils.logger import setup_logger
 from src.web.models import DashboardStats
-from src.web.routers import accounts, jobs, media, settings, tweets, users
+from src.web.routers import accounts, image_processing, jobs, media, settings, tweets, users
 
 # Load root .env file for port configuration
 root_env_path = Path(__file__).parent.parent.parent.parent / ".env"
@@ -84,6 +84,7 @@ app.include_router(tweets.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
 app.include_router(accounts.router, prefix="/api")
 app.include_router(media.router, prefix="/api")
+app.include_router(image_processing.router, prefix="/api")
 # WebSocketルーターを削除しました
 
 # ロガー設定

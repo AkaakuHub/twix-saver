@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useTweets, useTweetManagement } from '../../hooks/useTweets'
+import { useImageProcessing } from '../../hooks/useImageProcessing'
 import { formatDateOnly } from '../../utils/dateFormat'
 import { Card } from '../ui/Card'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
@@ -25,6 +26,8 @@ export const TweetList = () => {
   const [expandedTweets, setExpandedTweets] = useState<Set<string>>(new Set())
   const [showScrollTop, setShowScrollTop] = useState(false)
 
+  const { retryFailed, loading: imageProcessingLoading } = useImageProcessing()
+
   const { tweets, isLoading, total, error, hasMore, loadMore } = useTweets({
     search: searchFilters.query,
     username: searchFilters.username,
@@ -40,7 +43,14 @@ export const TweetList = () => {
     page_size: 20,
   })
 
-  const { deleteTweet, refreshTweet, refreshAllTweets, isRefreshing } = useTweetManagement()
+  const {
+    deleteTweet,
+    refreshTweet,
+    refreshAllTweets,
+    deleteAllTweets,
+    isRefreshing,
+    isDeletingAll,
+  } = useTweetManagement()
 
   // スクロール検出
   useEffect(() => {
@@ -72,6 +82,33 @@ export const TweetList = () => {
   const scrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
+
+  // 2段階確認での全ツイート削除
+  const handleDeleteAllTweets = useCallback(() => {
+    // 第1段階確認
+    const firstConfirm = window.confirm(
+      `⚠️ 本当にすべてのツイートを削除しますか？\n\n` +
+        `削除されるデータ:\n` +
+        `• 全ツイート (${total.toLocaleString()}件)\n` +
+        `• 関連するメディアファイル\n` +
+        `• この操作は取り消せません\n\n` +
+        `続行するには「OK」をクリックしてください。`
+    )
+
+    if (!firstConfirm) return
+
+    // 第2段階確認
+    const secondConfirm = window.confirm(
+      `🚨 最終確認\n\n` +
+        `すべてのツイートとメディアファイルが完全に削除されます。\n` +
+        `この操作は絶対に元に戻せません。\n\n` +
+        `本当に削除を実行しますか？`
+    )
+
+    if (secondConfirm) {
+      deleteAllTweets()
+    }
+  }, [total, deleteAllTweets])
 
   // メモ化されたツイート変換
   const transformedTweets = useMemo(() => {
@@ -143,6 +180,27 @@ export const TweetList = () => {
             icon={<ArrowPathIcon className="w-4 h-4" />}
           >
             全再取得
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => retryFailed(100)}
+            loading={imageProcessingLoading}
+            className="text-amber-600 border-amber-300 hover:bg-amber-50"
+          >
+            📸 画像のみリトライ
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDeleteAllTweets}
+            loading={isDeletingAll}
+            className="text-red-600 border-red-300 hover:bg-red-50"
+            disabled={total === 0}
+          >
+            🗑️ 全ツイート削除
           </Button>
 
           <div className="border-l border-gray-200 h-6 mx-2" />
