@@ -3,14 +3,15 @@
 保存された画像データを提供
 """
 
-import base64
 from typing import Optional
+from pathlib import Path
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import StreamingResponse
 from io import BytesIO
 
 from src.utils.data_manager import mongodb_manager
 from src.utils.logger import setup_logger
+from src.config.settings import settings
 
 router = APIRouter(prefix="/media", tags=["media"])
 logger = setup_logger("api.media")
@@ -29,21 +30,31 @@ async def get_media(media_id: str) -> Response:
                 detail=f"指定されたメディアが見つかりません: {media_id}"
             )
         
-        # Base64データをバイナリに変換
-        base64_data = media_doc.get("data")
-        if not base64_data:
+        # ファイルパスを取得してファイルを読み込み
+        file_path_name = media_doc.get("file_path")
+        if not file_path_name:
             raise HTTPException(
                 status_code=500,
-                detail="メディアデータが無効です"
+                detail="メディアファイルパスが無効です"
             )
         
+        # 完全なファイルパス
+        full_file_path = Path(settings.images_dir) / file_path_name
+        
         try:
-            image_bytes = base64.b64decode(base64_data)
+            if not full_file_path.exists():
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"メディアファイルが見つかりません: {file_path_name}"
+                )
+            
+            with open(full_file_path, 'rb') as f:
+                image_bytes = f.read()
         except Exception as e:
-            logger.error(f"Base64デコードエラー ({media_id}): {e}")
+            logger.error(f"ファイル読み込みエラー ({media_id}): {e}")
             raise HTTPException(
                 status_code=500,
-                detail="画像データの復元に失敗しました"
+                detail="画像ファイルの読み込みに失敗しました"
             )
         
         # MIMEタイプを取得

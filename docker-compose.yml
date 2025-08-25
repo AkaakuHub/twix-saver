@@ -33,6 +33,7 @@ services:
       - ./backend/data:/app/data
       - ./backend/logs:/app/logs
       - ./backend/sessions:/app/sessions
+      - ./backend/database:/app/database
     depends_on:
       - mongodb
     networks:

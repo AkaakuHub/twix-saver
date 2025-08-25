@@ -5,15 +5,17 @@ MongoDB からのツイートデータ取得と検索機能を提供
 
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from datetime import datetime, timedelta
 from pymongo.errors import PyMongoError
+from pathlib import Path
 import os
 import mimetypes
 
 from src.web.models import TweetSearchFilter, TweetResponse, PaginatedResponse
 from src.utils.data_manager import mongodb_manager
 from src.utils.logger import setup_logger
+from src.config.settings import settings
 
 router = APIRouter(prefix="/tweets", tags=["tweets"])
 logger = setup_logger("api.tweets")  # reload trigger
@@ -440,11 +442,25 @@ async def get_media_file(media_id: str):
         if not media_doc:
             raise HTTPException(status_code=404, detail="メディアファイルが見つかりません")
         
-        # Base64データをデコード
-        import base64
-        from fastapi.responses import Response
+        # ファイルパスを取得してファイルを読み込み
+        file_path_name = media_doc.get("file_path")
+        if not file_path_name:
+            raise HTTPException(
+                status_code=500,
+                detail="メディアファイルパスが無効です"
+            )
         
-        image_data = base64.b64decode(media_doc["data"])
+        # 完全なファイルパス
+        full_file_path = Path(settings.images_dir) / file_path_name
+        
+        if not full_file_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"メディアファイルが見つかりません: {file_path_name}"
+            )
+        
+        with open(full_file_path, 'rb') as f:
+            image_data = f.read()
         content_type = media_doc.get("content_type", "image/jpeg")
         
         return Response(

@@ -64,6 +64,8 @@ class Settings:
         self.data_dir = "data"
         self.raw_data_dir = f"{self.data_dir}/raw"
         self.processed_data_dir = f"{self.data_dir}/processed"
+        self.database_dir = "database"
+        self.images_dir = f"{self.database_dir}/images"
         self.logs_dir = "logs"
         self.sessions_dir = "sessions"
     

@@ -13,6 +13,7 @@ from urllib.parse import urlparse, urljoin
 from pathlib import Path
 
 from src.utils.logger import setup_logger
+from src.config.settings import settings
 
 
 class MediaProcessor:
@@ -89,26 +90,41 @@ class MediaProcessor:
         return None
     
     def save_image_to_db(self, image_data: bytes, mime_type: str, db_manager) -> str:
-        """画像をBase64エンコードしてDBに保存、メディアIDを返す"""
+        """画像をファイルとして保存し、DBにメタデータを保存、メディアIDを返す"""
         try:
             media_id = str(uuid.uuid4())
-            base64_data = base64.b64encode(image_data).decode('utf-8')
             
+            # ファイル拡張子を取得
+            file_extension = mimetypes.guess_extension(mime_type) or '.jpg'
+            filename = f"{media_id}{file_extension}"
+            
+            # 画像保存ディレクトリのパス
+            images_dir = Path(settings.images_dir)
+            images_dir.mkdir(parents=True, exist_ok=True)
+            
+            # ファイルパス
+            file_path = images_dir / filename
+            
+            # ファイルに書き込み
+            with open(file_path, 'wb') as f:
+                f.write(image_data)
+            
+            # DBにメタデータを保存
             media_doc = {
                 "_id": media_id,
-                "data": base64_data,
+                "file_path": filename,  # 相対パス
                 "content_type": mime_type,
                 "size": len(image_data),
                 "created_at": db_manager.get_jst_now()
             }
             
             db_manager.db.media_files.insert_one(media_doc)
-            self.logger.debug(f"画像をDBに保存: {media_id} ({len(image_data)} bytes, {mime_type})")
+            self.logger.debug(f"画像をファイルに保存: {media_id} ({len(image_data)} bytes, {mime_type}) -> {filename}")
             
             return media_id
             
         except Exception as e:
-            self.logger.error(f"画像DB保存エラー: {e}")
+            self.logger.error(f"画像ファイル保存エラー: {e}")
             return None
     
     async def process_tweet_attachments(self, tweet: Dict, db_manager) -> List[Dict]:
