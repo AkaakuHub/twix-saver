@@ -63,9 +63,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS設定（初期設定として環境変数から取得、後でDB設定で動的更新される）
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
-cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
+# CORS設定（ポート設定から動的に生成）
+from src.config.ports import CORS_ORIGINS
+cors_origins = CORS_ORIGINS
 
 app.add_middleware(
     CORSMiddleware,
