@@ -26,7 +26,6 @@ const defaultSettings: SettingsResponse = {
   },
   general: {
     logLevel: 'INFO',
-    corsOrigins: 'http://localhost:3000,http://localhost:5173',
   },
   twitter_accounts_available: 0,
 }
@@ -83,7 +82,6 @@ export function Settings() {
       },
       general: {
         logLevel: String(data.general?.logLevel ?? defaultSettings.general.logLevel),
-        corsOrigins: String(data.general?.corsOrigins ?? defaultSettings.general.corsOrigins),
       },
       twitter_accounts_available: Number(
         (data as Record<string, unknown>).twitter_accounts_available ??
@@ -516,16 +514,6 @@ export function Settings() {
                   <option value="WARNING">WARNING</option>
                   <option value="ERROR">ERROR</option>
                 </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cors-origins">CORS許可オリジン</Label>
-                <Input
-                  id="cors-origins"
-                  value={settings.general.corsOrigins}
-                  onChange={e => updateSettings('general', 'corsOrigins', e.target.value)}
-                  placeholder="http://localhost:3000,http://localhost:5173"
-                />
-                <p className="text-sm text-muted-foreground">カンマ区切りで複数指定可能</p>
               </div>
             </CardContent>
           </Card>

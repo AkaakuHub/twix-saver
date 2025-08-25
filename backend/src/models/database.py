@@ -492,10 +492,4 @@ DEFAULT_SYSTEM_CONFIGS = [
         description="WebUI自動更新間隔（秒）",
         category="ui",
     ),
-    SystemConfig(
-        key="cors_origins",
-        value="http://localhost:3000,http://localhost:5173",
-        description="CORS許可オリジン（カンマ区切り）",
-        category="ui",
-    ),
 ]

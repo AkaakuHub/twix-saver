@@ -165,11 +165,6 @@ class ConfigService:
         """ログレベルを取得"""
         return self.get_config("log_level", "INFO")
 
-    def get_cors_origins(self) -> list[str]:
-        """CORS許可オリジンを取得"""
-        origins_str = self.get_config("cors_origins", "http://localhost:3000,http://localhost:5173")
-        return [origin.strip() for origin in origins_str.split(",") if origin.strip()]
-
 
 # グローバルサービスインスタンス
 config_service = ConfigService()

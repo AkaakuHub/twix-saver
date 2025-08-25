@@ -18,7 +18,6 @@ export interface ScrapingConfig {
 
 export interface GeneralConfig {
   logLevel: string
-  corsOrigins: string
 }
 
 // バックエンドのSettingsResponseと完全に一致する型

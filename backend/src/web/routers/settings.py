@@ -33,7 +33,6 @@ class ScrapingConfig(BaseModel):
 
 class GeneralConfig(BaseModel):
     log_level: str = "INFO"
-    cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
 
 class SystemConfigItem(BaseModel):
@@ -80,7 +79,6 @@ async def get_settings():
         # 一般設定
         general_config = GeneralConfig(
             logLevel=config_service.get_config("log_level", "INFO"),
-            corsOrigins=config_service.get_config("cors_origins", "http://localhost:3000,http://localhost:5173"),
         )
 
         # 使用可能なTwitterアカウント数
@@ -126,7 +124,6 @@ async def update_settings(settings_request: SettingsRequest):
 
         # 一般設定
         config_updates["log_level"] = settings_request.general.logLevel
-        config_updates["cors_origins"] = settings_request.general.corsOrigins
 
         # データベースに一括更新
         success = config_service.update_configs(config_updates)
@@ -210,7 +207,6 @@ async def migrate_from_env():
             "MAX_TWEETS_PER_SESSION": ("max_tweets_per_session", int),
             "HEADLESS": ("headless_mode", lambda x: x.lower() == "true"),
             "LOG_LEVEL": ("log_level", str),
-            "CORS_ORIGINS": ("cors_origins", str),
             "PROXY_SERVER": ("proxy_server", str),
             "PROXY_USERNAME": ("proxy_username", str),
             "PROXY_PASSWORD": ("proxy_password", str),
