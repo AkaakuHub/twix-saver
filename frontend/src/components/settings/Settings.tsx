@@ -19,13 +19,13 @@ const defaultSettings: SettingsResponse = {
     password: '',
   },
   scraping: {
-    intervalMinutes: 15,
-    randomDelayMaxSeconds: 120,
-    maxTweetsPerSession: 100,
+    interval_minutes: 15,
+    random_delay_max_seconds: 120,
+    max_tweets_per_session: 100,
     headless: true,
   },
   general: {
-    logLevel: 'INFO',
+    log_level: 'INFO',
   },
   twitter_accounts_available: 0,
 }
@@ -69,19 +69,20 @@ export function Settings() {
         password: String(data.proxy?.password ?? defaultSettings.proxy.password),
       },
       scraping: {
-        intervalMinutes: Number(
-          data.scraping?.intervalMinutes ?? defaultSettings.scraping.intervalMinutes
+        interval_minutes: Number(
+          data.scraping?.interval_minutes ?? defaultSettings.scraping.interval_minutes
         ),
-        randomDelayMaxSeconds: Number(
-          data.scraping?.randomDelayMaxSeconds ?? defaultSettings.scraping.randomDelayMaxSeconds
+        random_delay_max_seconds: Number(
+          data.scraping?.random_delay_max_seconds ??
+            defaultSettings.scraping.random_delay_max_seconds
         ),
-        maxTweetsPerSession: Number(
-          data.scraping?.maxTweetsPerSession ?? defaultSettings.scraping.maxTweetsPerSession
+        max_tweets_per_session: Number(
+          data.scraping?.max_tweets_per_session ?? defaultSettings.scraping.max_tweets_per_session
         ),
         headless: Boolean(data.scraping?.headless ?? defaultSettings.scraping.headless),
       },
       general: {
-        logLevel: String(data.general?.logLevel ?? defaultSettings.general.logLevel),
+        log_level: String(data.general?.log_level ?? defaultSettings.general.log_level),
       },
       twitter_accounts_available: Number(
         (data as Record<string, unknown>).twitter_accounts_available ??
@@ -448,9 +449,9 @@ export function Settings() {
                   id="interval-minutes"
                   type="number"
                   min="1"
-                  value={settings.scraping.intervalMinutes}
+                  value={settings.scraping.interval_minutes}
                   onChange={e =>
-                    updateSettings('scraping', 'intervalMinutes', parseInt(e.target.value) || 1)
+                    updateSettings('scraping', 'interval_minutes', parseInt(e.target.value) || 1)
                   }
                 />
               </div>
@@ -460,11 +461,11 @@ export function Settings() {
                   id="random-delay"
                   type="number"
                   min="0"
-                  value={settings.scraping.randomDelayMaxSeconds}
+                  value={settings.scraping.random_delay_max_seconds}
                   onChange={e =>
                     updateSettings(
                       'scraping',
-                      'randomDelayMaxSeconds',
+                      'random_delay_max_seconds',
                       parseInt(e.target.value) || 0
                     )
                   }
@@ -476,9 +477,13 @@ export function Settings() {
                   id="max-tweets"
                   type="number"
                   min="1"
-                  value={settings.scraping.maxTweetsPerSession}
+                  value={settings.scraping.max_tweets_per_session}
                   onChange={e =>
-                    updateSettings('scraping', 'maxTweetsPerSession', parseInt(e.target.value) || 1)
+                    updateSettings(
+                      'scraping',
+                      'max_tweets_per_session',
+                      parseInt(e.target.value) || 1
+                    )
                   }
                 />
               </div>
@@ -506,8 +511,8 @@ export function Settings() {
                 <select
                   id="log-level"
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                  value={settings.general.logLevel}
-                  onChange={e => updateSettings('general', 'logLevel', e.target.value)}
+                  value={settings.general.log_level}
+                  onChange={e => updateSettings('general', 'log_level', e.target.value)}
                 >
                   <option value="DEBUG">DEBUG</option>
                   <option value="INFO">INFO</option>

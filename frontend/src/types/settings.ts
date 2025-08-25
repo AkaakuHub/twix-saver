@@ -10,14 +10,14 @@ export interface ProxyConfig {
 }
 
 export interface ScrapingConfig {
-  intervalMinutes: number
-  randomDelayMaxSeconds: number
-  maxTweetsPerSession: number
+  interval_minutes: number
+  random_delay_max_seconds: number
+  max_tweets_per_session: number
   headless: boolean
 }
 
 export interface GeneralConfig {
-  logLevel: string
+  log_level: string
 }
 
 // バックエンドのSettingsResponseと完全に一致する型

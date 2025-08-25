@@ -70,15 +70,15 @@ async def get_settings():
 
         # スクレイピング設定
         scraping_config = ScrapingConfig(
-            intervalMinutes=config_service.get_config("scraping_interval_minutes", 15),
-            randomDelayMaxSeconds=config_service.get_config("random_delay_max_seconds", 120),
-            maxTweetsPerSession=config_service.get_config("max_tweets_per_session", 100),
+            interval_minutes=config_service.get_config("scraping_interval_minutes", 15),
+            random_delay_max_seconds=config_service.get_config("random_delay_max_seconds", 120),
+            max_tweets_per_session=config_service.get_config("max_tweets_per_session", 100),
             headless=config_service.get_config("headless_mode", True),
         )
 
         # 一般設定
         general_config = GeneralConfig(
-            logLevel=config_service.get_config("log_level", "INFO"),
+            log_level=config_service.get_config("log_level", "INFO"),
         )
 
         # 使用可能なTwitterアカウント数
@@ -117,13 +117,13 @@ async def update_settings(settings_request: SettingsRequest):
             config_updates["proxy_password"] = settings_request.proxy.password
 
         # スクレイピング設定
-        config_updates["scraping_interval_minutes"] = settings_request.scraping.intervalMinutes
-        config_updates["random_delay_max_seconds"] = settings_request.scraping.randomDelayMaxSeconds
-        config_updates["max_tweets_per_session"] = settings_request.scraping.maxTweetsPerSession
+        config_updates["scraping_interval_minutes"] = settings_request.scraping.interval_minutes
+        config_updates["random_delay_max_seconds"] = settings_request.scraping.random_delay_max_seconds
+        config_updates["max_tweets_per_session"] = settings_request.scraping.max_tweets_per_session
         config_updates["headless_mode"] = settings_request.scraping.headless
 
         # 一般設定
-        config_updates["log_level"] = settings_request.general.logLevel
+        config_updates["log_level"] = settings_request.general.log_level
 
         # データベースに一括更新
         success = config_service.update_configs(config_updates)
