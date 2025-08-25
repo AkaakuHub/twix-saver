@@ -25,9 +25,13 @@ class TwitterScraper:
     ネットワーク傍受とアンチ検知機能を備えた堅牢なスクレイパー
     """
     
-    def __init__(self, account: TwitterAccount):
+    def __init__(self, account: TwitterAccount, max_tweets: Optional[int] = None):
         self.account = account
+        self.max_tweets = max_tweets
         self.logger = setup_logger(f"twitter_scraper.{account.username}")
+        
+        if max_tweets:
+            self.logger.info(f"デバッグモード：最大{max_tweets}件のツイートを取得")
         
         # 内部状態
         self.browser_context: Optional[BrowserContext] = None
@@ -231,6 +235,12 @@ class TwitterScraper:
                     
                     self.collected_tweets.append(tweet)
                     
+                    # デバッグ用：最大件数で停止
+                    if self.max_tweets and self.total_saved + len(self.collected_tweets) >= self.max_tweets:
+                        self.logger.info(f"デバッグ制限：{self.max_tweets}件に達したため停止")
+                        await self._save_chunk()
+                        return
+                    
                     # チャンク保存チェック
                     if len(self.collected_tweets) >= self.chunk_size:
                         await self._save_chunk()
@@ -250,9 +260,14 @@ class TwitterScraper:
         
         def extract_recursive(obj):
             if isinstance(obj, dict):
-                # Tweet オブジェクトの識別
+                # Tweet オブジェクトのみを識別（User オブジェクトを除外）
                 if "rest_id" in obj and "legacy" in obj:
-                    tweets.append(obj)
+                    obj_type = obj.get("__typename", "Unknown")
+                    if obj_type == "Tweet":
+                        tweets.append(obj)
+                        self.logger.debug(f"Tweet抽出: {obj.get('rest_id')} - {obj_type}")
+                    else:
+                        self.logger.debug(f"非Tweet除外: {obj.get('rest_id')} - {obj_type}")
                 elif "tweet" in obj:
                     extract_recursive(obj["tweet"])
                 elif "tweets" in obj:
@@ -412,13 +427,17 @@ class TwitterScraper:
             from src.utils.data_manager import mongodb_manager
             tweets_collection = mongodb_manager.db["tweets"]
             
-            # 対象ユーザーの既存ツイートIDを取得
+            # 対象ユーザーの既存ツイートIDを取得（新旧データ構造対応）
             cursor = tweets_collection.find(
-                {"user.screen_name": username},
+                {"$or": [
+                    {"user.screen_name": username},
+                    {"legacy.user_id_str": {"$exists": True}},  # 新しい構造の場合はuser_id_strで判定
+                    {"core.user_results.result.core.screen_name": username}
+                ]},
                 {"id_str": 1, "_id": 0}
             )
             
-            self.known_tweet_ids = {doc["id_str"] async for doc in cursor}
+            self.known_tweet_ids = {doc["id_str"] for doc in cursor if doc.get("id_str")}
             self.logger.info(f"@{username} の既知ツイートID: {len(self.known_tweet_ids)}件")
             
         except Exception as e:
@@ -524,10 +543,11 @@ class TwitterScraper:
 class ScrapingSession:
     """スクレイピングセッションの管理クラス"""
     
-    def __init__(self):
+    def __init__(self, max_tweets: Optional[int] = None):
         self.logger = setup_logger("scraping_session")
         self.start_time = time.time()
         self.scrapers: List[TwitterScraper] = []
+        self.max_tweets = max_tweets
     
     async def run_session(self, target_users: List[str]) -> Dict[str, any]:
         """スクレイピングセッションを実行"""
@@ -558,7 +578,7 @@ class ScrapingSession:
         self.logger.info(f"選択されたアカウント: @{account.username} (型: {type(account)})")
         
         try:
-            async with TwitterScraper(account) as scraper:
+            async with TwitterScraper(account, max_tweets=self.max_tweets) as scraper:
                 # ジョブIDを設定（main.pyから呼ばれる場合）
                 if hasattr(self, '_current_job_id'):
                     scraper.current_job_id = self._current_job_id

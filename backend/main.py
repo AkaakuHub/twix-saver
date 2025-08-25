@@ -62,7 +62,7 @@ async def execute_job(job: ScrapingJob) -> bool:
         tweet_data = {}
         
         try:
-            session = ScrapingSession()
+            session = ScrapingSession(max_tweets=getattr(job, 'max_tweets', None))
             # ジョブIDを設定してリアルタイムログを有効化
             session._current_job_id = job_id
             session_result = await session.run_session(job.target_usernames)
@@ -178,14 +178,15 @@ async def execute_job(job: ScrapingJob) -> bool:
         return False
 
 
-async def main_scraping_task(target_users: List[str], process_articles: bool = True) -> bool:
+async def main_scraping_task(target_users: List[str], process_articles: bool = True, max_tweets: Optional[int] = None) -> bool:
     """従来のコマンドライン用スクレイピングタスク（後方互換性）"""
     logger = setup_logger("main")
     
     # ジョブを作成して実行
     job_id = job_service.create_job(
         target_usernames=target_users,
-        process_articles=process_articles
+        process_articles=process_articles,
+        max_tweets=max_tweets
     )
     
     if not job_id:
@@ -390,6 +391,13 @@ def main():
         help='ログレベルを指定'
     )
     
+    parser.add_argument(
+        '--max-tweets',
+        type=int,
+        default=None,
+        help='取得するツイートの最大数（デバッグ用）'
+    )
+    
     args = parser.parse_args()
     
     # ログレベル設定
@@ -425,7 +433,8 @@ def main():
     success = asyncio.run(
         main_scraping_task(
             args.users,
-            process_articles=not args.no_articles
+            process_articles=not args.no_articles,
+            max_tweets=args.max_tweets
         )
     )
     

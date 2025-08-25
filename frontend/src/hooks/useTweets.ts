@@ -44,17 +44,30 @@ export const useTweets = (params: TweetSearchParams = {}) => {
             throw new Error(`ツイートデータの取得に失敗しました: ${errorText}`)
           }
 
-          const result = (await response.json()) as {
-            tweets?: TweetResponse[]
-            data?: TweetResponse[]
-            total?: number
-            has_more?: boolean
-          }
-          return {
-            tweets: result.tweets || result.data || [],
-            total: result.total || 0,
-            page: pageParam as number,
-            hasMore: result.has_more || false,
+          const result = await response.json()
+
+          // 配列が直接返される場合と、オブジェクト内に配列がある場合に対応
+          if (Array.isArray(result)) {
+            return {
+              tweets: result as TweetResponse[],
+              total: result.length,
+              page: pageParam as number,
+              hasMore: false, // 単一ページの場合
+            }
+          } else {
+            // オブジェクト形式の場合
+            const objectResult = result as {
+              tweets?: TweetResponse[]
+              data?: TweetResponse[]
+              total?: number
+              has_more?: boolean
+            }
+            return {
+              tweets: objectResult.tweets || objectResult.data || [],
+              total: objectResult.total || 0,
+              page: pageParam as number,
+              hasMore: objectResult.has_more || false,
+            }
           }
         } catch (error) {
           if (error instanceof TypeError && error.message.includes('fetch')) {

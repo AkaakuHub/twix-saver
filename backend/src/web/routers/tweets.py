@@ -442,16 +442,28 @@ def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
     author_username = ""
     author_display_name = ""
     
-    if "legacy" in doc and "user" in doc["legacy"]:
-        user = doc["legacy"]["user"]
-        author_username = user.get("screen_name", "")
-        author_display_name = user.get("name", "")
-    elif "core" in doc and "user_results" in doc["core"]:
+    # 新構造のチェックを優先（core.user_resultsが存在する場合）
+    if "core" in doc and "user_results" in doc["core"]:
         user_result = doc["core"]["user_results"].get("result", {})
-        if "legacy" in user_result:
+        if "core" in user_result:
+            # 新構造のcoreフィールド（最新）- これが最優先
+            core_user = user_result["core"]
+            author_username = core_user.get("screen_name", "")
+            author_display_name = core_user.get("name", "")
+        elif "legacy" in user_result:
+            # 新構造のlegacyフィールド
             legacy_user = user_result["legacy"]
             author_username = legacy_user.get("screen_name", "")
             author_display_name = legacy_user.get("name", "")
+    # 旧構造のチェック（legacy.userが存在する場合）
+    elif "legacy" in doc and "user" in doc["legacy"]:
+        user = doc["legacy"]["user"]
+        author_username = user.get("screen_name", "")
+        author_display_name = user.get("name", "")
+    
+    # デバッグログ
+    if not author_username:
+        logger.debug(f"ユーザー名取得失敗 - Tweet ID: {tweet_id}, Data keys: {list(doc.keys())}")
     
     # エンゲージメント情報
     engagement = {}

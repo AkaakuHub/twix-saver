@@ -204,13 +204,19 @@ class MongoDBManager:
                     self.logger.warning("ツイートIDが見つかりません")
                     continue
                 
+                # ツイートデータを正規化（id_strを確実に設定）
+                normalized_tweet = tweet.copy()
+                normalized_tweet["id_str"] = tweet_id
+                if "rest_id" not in normalized_tweet:
+                    normalized_tweet["rest_id"] = tweet_id
+                
                 # upsert操作を作成
                 filter_query = {"$or": [{"id_str": tweet_id}, {"rest_id": tweet_id}]}
                 
                 operations.append(
                     UpdateOne(
                         filter_query,
-                        {"$set": tweet},
+                        {"$set": normalized_tweet},
                         upsert=True
                     )
                 )
@@ -352,11 +358,14 @@ class DataIngestService:
         
         self.logger.info(f"{len(jsonl_files)}個のJSONLファイルを処理開始")
         
+        processed_files = []
         for filepath in jsonl_files:
-            self._process_single_file(filepath)
+            if self._process_single_file(filepath):
+                processed_files.append(filepath)
         
-        # 処理済みファイルを移動
-        self._move_processed_files(jsonl_files)
+        # DB挿入成功したファイルのみ削除
+        if processed_files:
+            self._delete_processed_files(processed_files)
         
         return {
             "processed_files": self.processed_files,
@@ -364,7 +373,7 @@ class DataIngestService:
             "processed_articles": self.processed_articles
         }
     
-    def _process_single_file(self, filepath: Path):
+    def _process_single_file(self, filepath: Path) -> bool:
         """単一JSONLファイルの処理"""
         try:
             self.logger.info(f"ファイル処理開始: {filepath.name}")
@@ -380,21 +389,33 @@ class DataIngestService:
                     articles.append(item)
             
             # MongoDBに挿入
+            success = True
             if tweets:
                 inserted_tweets = self.mongodb.insert_tweets(tweets)
-                self.processed_tweets += inserted_tweets
+                if inserted_tweets == 0 and len(tweets) > 0:
+                    success = False
+                else:
+                    self.processed_tweets += inserted_tweets
             
             if articles:
                 inserted_articles = self.mongodb.insert_articles(articles)
-                self.processed_articles += inserted_articles
+                if inserted_articles == 0 and len(articles) > 0:
+                    success = False
+                else:
+                    self.processed_articles += inserted_articles
             
-            self.processed_files += 1
-            
-            self.logger.info(f"ファイル処理完了: {filepath.name} "
-                           f"(ツイート{len(tweets)}件, 記事{len(articles)}件)")
+            if success:
+                self.processed_files += 1
+                self.logger.info(f"ファイル処理完了: {filepath.name} "
+                               f"(ツイート{len(tweets)}件, 記事{len(articles)}件)")
+                return True
+            else:
+                self.logger.warning(f"ファイル処理失敗: {filepath.name} (DB挿入エラー)")
+                return False
             
         except Exception as e:
             self.logger.error(f"ファイル処理エラー ({filepath}): {e}")
+            return False
     
     def _is_tweet_data(self, item: Dict) -> bool:
         """ツイートデータかどうかを判定"""
@@ -406,8 +427,17 @@ class DataIngestService:
         article_indicators = ["url", "cleaned_text", "title"]
         return "url" in item and any(key in item for key in article_indicators)
     
+    def _delete_processed_files(self, files: List[Path]):
+        """DB挿入成功したファイルを削除"""
+        for filepath in files:
+            try:
+                filepath.unlink()
+                self.logger.info(f"処理済みファイルを削除: {filepath.name}")
+            except Exception as e:
+                self.logger.error(f"ファイル削除エラー ({filepath}): {e}")
+    
     def _move_processed_files(self, files: List[Path]):
-        """処理済みファイルを移動"""
+        """処理済みファイルを移動（廃止予定）"""
         processed_dir = Path(settings.processed_data_dir)
         processed_dir.mkdir(parents=True, exist_ok=True)
         
