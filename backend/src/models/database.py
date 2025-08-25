@@ -3,7 +3,7 @@
 target_users, scraping_jobs コレクション用のモデル
 """
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 from enum import Enum
 from dataclasses import dataclass, asdict
@@ -287,12 +287,14 @@ class ScrapingJob:
     
     def add_log(self, message: str):
         """ログエントリを追加"""
-        timestamp = datetime.utcnow().strftime("%H:%M:%S")
+        jst = timezone(timedelta(hours=9))
+        timestamp = datetime.now(jst).strftime("%H:%M:%S")
         self.logs.append(f"[{timestamp}] {message}")
     
     def add_error(self, error: str):
         """エラーエントリを追加"""
-        timestamp = datetime.utcnow().strftime("%H:%M:%S")
+        jst = timezone(timedelta(hours=9))
+        timestamp = datetime.now(jst).strftime("%H:%M:%S")
         self.errors.append(f"[{timestamp}] {error}")
         self.stats.errors_count += 1
     

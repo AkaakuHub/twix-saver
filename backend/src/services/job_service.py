@@ -4,7 +4,7 @@
 """
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 from pymongo.collection import Collection
 from pymongo.errors import PyMongoError
@@ -12,6 +12,12 @@ from pymongo.errors import PyMongoError
 from src.models.database import ScrapingJob, ScrapingJobStatus, ScrapingJobStats
 from src.utils.data_manager import mongodb_manager
 from src.utils.logger import setup_logger
+
+
+def get_jst_now():
+    """JST（日本標準時）の現在時刻を取得"""
+    jst = timezone(timedelta(hours=9))
+    return datetime.now(jst)
 
 
 class JobService:
@@ -144,7 +150,7 @@ class JobService:
                         "started_at": datetime.utcnow()
                     },
                     "$push": {
-                        "logs": f"[{datetime.utcnow().strftime('%H:%M:%S')}] "
+                        "logs": f"[{get_jst_now().strftime('%H:%M:%S')}] "
                                "スクレイピングジョブを開始しました"
                     }
                 }
@@ -182,7 +188,7 @@ class JobService:
                 update_data["stats"]["processing_time_seconds"] = duration
             
             # 完了ログを追加
-            completion_log = (f"[{datetime.utcnow().strftime('%H:%M:%S')}] "
+            completion_log = (f"[{get_jst_now().strftime('%H:%M:%S')}] "
                              f"スクレイピングジョブが完了しました "
                              f"(ツイート: {stats.tweets_collected}件, "
                              f"記事: {stats.articles_extracted}件)")
@@ -214,7 +220,7 @@ class JobService:
     def fail_job(self, job_id: str, error_message: str) -> bool:
         """ジョブを失敗状態に更新"""
         try:
-            error_log = (f"[{datetime.utcnow().strftime('%H:%M:%S')}] "
+            error_log = (f"[{get_jst_now().strftime('%H:%M:%S')}] "
                         f"エラー: {error_message}")
             
             result = self.collection.update_one(
@@ -246,7 +252,7 @@ class JobService:
     def cancel_job(self, job_id: str) -> bool:
         """ジョブをキャンセル状態に更新"""
         try:
-            cancel_log = (f"[{datetime.utcnow().strftime('%H:%M:%S')}] "
+            cancel_log = (f"[{get_jst_now().strftime('%H:%M:%S')}] "
                          f"ジョブがキャンセルされました")
             
             result = self.collection.update_one(
@@ -273,10 +279,26 @@ class JobService:
             self.logger.error(f"ジョブキャンセルエラー ({job_id}): {e}")
             return False
     
+    def delete_job(self, job_id: str) -> bool:
+        """ジョブを完全に削除"""
+        try:
+            result = self.collection.delete_one({"job_id": job_id})
+            
+            if result.deleted_count > 0:
+                self.logger.info(f"ジョブを削除しました: {job_id}")
+                return True
+            else:
+                self.logger.warning(f"削除対象のジョブが見つかりませんでした: {job_id}")
+                return False
+                
+        except PyMongoError as e:
+            self.logger.error(f"ジョブ削除エラー: {e}")
+            return False
+    
     def add_job_log(self, job_id: str, message: str) -> bool:
         """ジョブにログメッセージを追加"""
         try:
-            log_entry = f"[{datetime.utcnow().strftime('%H:%M:%S')}] {message}"
+            log_entry = f"[{get_jst_now().strftime('%H:%M:%S')}] {message}"
             
             result = self.collection.update_one(
                 {"job_id": job_id},

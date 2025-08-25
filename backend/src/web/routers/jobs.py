@@ -510,6 +510,40 @@ async def stop_job(job_id: str):
         raise HTTPException(status_code=500, detail=f"ジョブ停止に失敗しました: {str(e)}")
 
 
+@router.delete("/{job_id}", response_model=SuccessResponse)
+async def delete_job(job_id: str):
+    """ジョブを削除"""
+    try:
+        job = job_service.get_job(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail=f"ジョブが見つかりません: {job_id}")
+        
+        # 実行中のジョブは削除できない
+        if job.status in ["running"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"実行中のジョブは削除できません。まず停止してください。"
+            )
+        
+        # ジョブを削除
+        success = job_service.delete_job(job_id)
+        
+        if success:
+            logger.info(f"ジョブを削除: {job_id}")
+            return SuccessResponse(
+                message=f"ジョブを削除しました",
+                data={"job_id": job_id}
+            )
+        else:
+            raise HTTPException(status_code=400, detail="ジョブの削除に失敗しました")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"ジョブ削除エラー ({job_id}): {e}")
+        raise HTTPException(status_code=500, detail=f"ジョブ削除に失敗しました: {str(e)}")
+
+
 @router.put("/{job_id}/fail", response_model=SuccessResponse)
 async def fail_job(job_id: str, error_message: str = Query(..., description="エラーメッセージ")):
     """ジョブを失敗状態にする"""

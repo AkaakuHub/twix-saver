@@ -22,12 +22,12 @@ export const JobsList = () => {
     jobs,
     isLoading,
     createJob,
-    cancelJob,
+    deleteJob,
     startJob,
     stopJob,
     runJob,
     isCreating,
-    isCancelling,
+    isDeleting,
     isStarting,
     isStopping,
     isRunning,
@@ -179,16 +179,17 @@ export const JobsList = () => {
                       結果
                     </Button>
 
-                    {/* キャンセルボタン */}
-                    {job.status !== 'completed' && (
+                    {/* 削除ボタン */}
+                    {job.status !== 'running' && (
                       <Button
                         variant="outline"
                         size="sm"
                         icon={<TrashIcon className="w-4 h-4" />}
-                        onClick={() => cancelJob(job.job_id)}
-                        loading={isCancelling}
-                        disabled={isCancelling}
+                        onClick={() => deleteJob(job.job_id)}
+                        loading={isDeleting}
+                        disabled={isDeleting}
                         className="text-red-600 hover:text-red-700"
+                        title="ジョブを削除"
                       >
                         削除
                       </Button>

@@ -8,7 +8,6 @@ import { UserBulkActions } from './UserBulkActions'
 import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
-import { EmptyStateWithRetry } from '../ui/EmptyStateWithRetry'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import type { TargetUserResponse, TargetUserCreate, TargetUserUpdate } from '../../types/api'
 import type { UserFormData } from './UserForm'
@@ -30,26 +29,10 @@ export const UserList = () => {
 
   if (error) {
     return (
-      <EmptyStateWithRetry
-        title="データの読み込みに失敗しました"
-        message={error.message}
-        onRetry={refetch}
-        icon={
-          <svg
-            className="h-12 w-12 text-red-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-            />
-          </svg>
-        }
-      />
+      <div className="text-center py-12">
+        <div className="text-gray-500 text-lg mb-4">ユーザー一覧を読み込めません</div>
+        <Button onClick={() => refetch()}>再読み込み</Button>
+      </div>
     )
   }
 

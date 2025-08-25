@@ -4,7 +4,7 @@ import { useUserStore } from '../../stores/userStore'
 import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
-import { PencilIcon, TrashIcon, PlayIcon, PauseIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { PencilIcon, TrashIcon, CheckIcon } from '@heroicons/react/24/outline'
 import type { TargetUserResponse } from '../../types/api'
 import { clsx } from 'clsx'
 
@@ -106,16 +106,6 @@ export const UserCard = ({ user, onEdit, onDelete }: UserCardProps) => {
 
           {/* アクション */}
           <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              icon={
-                user.active ? <PauseIcon className="w-4 h-4" /> : <PlayIcon className="w-4 h-4" />
-              }
-            >
-              {user.active ? '停止' : '開始'}
-            </Button>
-
             <Button
               variant="ghost"
               size="sm"

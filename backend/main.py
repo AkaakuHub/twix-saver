@@ -57,33 +57,56 @@ async def execute_job(job: ScrapingJob) -> bool:
         logger.info(f"ジョブ {job_id}: スクレイピングセッションを開始 (対象: {', '.join(job.target_usernames)})")
         job_service.add_job_log(job_id, f"スクレイピングセッションを開始: {', '.join(job.target_usernames)}")
         
+        session_result = {}
+        scraping_stats = {"total_tweets_saved": 0, "total_chunks": 0}
+        tweet_data = {}
+        
         try:
             session = ScrapingSession()
-            results = await session.run_session(job.target_usernames)
-            logger.info(f"ジョブ {job_id}: スクレイピングセッション完了 - 結果: {list(results.keys())}")
+            # ジョブIDを設定してリアルタイムログを有効化
+            session._current_job_id = job_id
+            session_result = await session.run_session(job.target_usernames)
+            
+            tweet_data = session_result["tweets"]
+            scraping_stats = session_result["stats"]
+            
+            logger.info(f"ジョブ {job_id}: スクレイピングセッション完了 - 処理ユーザー: {scraping_stats['users_processed']}")
         except Exception as e:
             logger.error(f"ジョブ {job_id}: スクレイピングセッションエラー: {e}")
             job_service.add_job_log(job_id, f"スクレイピングエラー: {str(e)}")
-            raise
+            
+            # エラーでも部分的な結果があれば続行
+            if session_result and session_result.get("stats", {}).get("total_tweets_saved", 0) > 0:
+                scraping_stats = session_result["stats"]
+                tweet_data = session_result["tweets"]
+                logger.info(f"部分的な結果を保持: {scraping_stats['total_tweets_saved']}件保存済み")
+                job_service.add_job_log(job_id, f"部分的な結果を保持: {scraping_stats['total_tweets_saved']}件")
+            else:
+                raise
         
-        total_tweets = sum(len(tweets) for tweets in results.values())
-        stats.tweets_collected = total_tweets
+        # 正確な統計情報を使用
+        total_tweets_saved = scraping_stats["total_tweets_saved"]
+        total_chunks = scraping_stats["total_chunks"]
+        
+        stats.tweets_collected = total_tweets_saved
+        
+        logger.info(f"総ツイート保存数: {total_tweets_saved}件 (チャンク数: {total_chunks})")
         
         # 進捗ログ
-        job_service.add_job_log(job_id, f"スクレイピング完了: {total_tweets}件のツイートを取得")
+        job_service.add_job_log(job_id, f"スクレイピング完了: {total_tweets_saved}件のツイートを保存")
         # WebSocket廃止済み
         
-        if total_tweets == 0:
+        if total_tweets_saved == 0:
             logger.warning(f"ジョブ {job_id}: 取得できたツイートがありません")
             job_service.add_job_log(job_id, "取得できたツイートがありませんでした")
         
         # 記事コンテンツの処理
-        if job.process_articles and total_tweets > 0:
+        if job.process_articles and total_tweets_saved > 0:
             job_service.add_job_log(job_id, "リンク先記事の処理を開始")
             # WebSocket廃止済み
             
             articles_count = 0
-            for username, tweets in results.items():
+            for username, tweets in tweet_data.items():
                 logger.info(f"@{username} のリンクを処理中...")
                 job_service.add_job_log(job_id, f"@{username} のリンクを処理中")
                 
@@ -128,10 +151,21 @@ async def execute_job(job: ScrapingJob) -> bool:
         # ジョブ完了
         job_service.complete_job(job_id, stats)
         
-        # WebSocket廃止済み
-        
         logger.info(f"ジョブが正常に完了: {job_id}")
-        log_scraping_stats(total_tweets, 0, session_duration)
+        log_scraping_stats(total_tweets_saved, 0, session_duration)
+        
+        # 実行結果の表示
+        print(f"\n{'='*50}")
+        print(f"スクレイピング完了")
+        print(f"{'='*50}")
+        print(f"対象ユーザー: {', '.join(job.target_usernames)}")
+        print(f"総ツイート保存数: {total_tweets_saved}件")
+        print(f"チャンク数: {total_chunks}件")
+        print(f"処理時間: {session_duration:.1f}秒")
+        if stats.articles_extracted > 0:
+            print(f"抽出記事数: {stats.articles_extracted}件")
+        print(f"データ保存場所: data/raw/")
+        print(f"{'='*50}\n")
         
         return True
         

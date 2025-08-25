@@ -19,22 +19,28 @@ interface TwitterAccount {
   active: boolean
 }
 
+interface TargetUser {
+  username: string
+  display_name?: string
+  active: boolean
+  priority?: number
+}
+
 export const JobForm = ({ onSubmit, onCancel, isSubmitting = false }: JobFormProps) => {
   const [targetUsernames, setTargetUsernames] = useState<string[]>([])
-  const [usernameInput, setUsernameInput] = useState('')
   const [processArticles, setProcessArticles] = useState(false)
   const [maxTweets, setMaxTweets] = useState<number | undefined>(undefined)
   const [availableAccounts, setAvailableAccounts] = useState<TwitterAccount[]>([])
+  const [availableTargetUsers, setAvailableTargetUsers] = useState<TargetUser[]>([])
   const [selectedAccount, setSelectedAccount] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  const [targetUsersLoading, setTargetUsersLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const addUsername = () => {
-    const username = usernameInput.trim()
+  const addUsername = (username: string) => {
     if (username && !targetUsernames.includes(username)) {
       setTargetUsernames([...targetUsernames, username])
-      setUsernameInput('')
-      setError(null) // エラーをクリア
+      setError(null)
     }
   }
 
@@ -42,15 +48,9 @@ export const JobForm = ({ onSubmit, onCancel, isSubmitting = false }: JobFormPro
     setTargetUsernames(targetUsernames.filter(u => u !== username))
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      addUsername()
-    }
-  }
-
   useEffect(() => {
     loadAvailableAccounts()
+    loadAvailableTargetUsers()
   }, [])
 
   const loadAvailableAccounts = async () => {
@@ -65,6 +65,18 @@ export const JobForm = ({ onSubmit, onCancel, isSubmitting = false }: JobFormPro
       setError('アカウント情報の取得に失敗しました')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadAvailableTargetUsers = async () => {
+    try {
+      setTargetUsersLoading(true)
+      const users = await apiClient.get<TargetUser[]>('/users?active_only=true')
+      setAvailableTargetUsers(users)
+    } catch {
+      setError('監視対象ユーザー一覧の取得に失敗しました')
+    } finally {
+      setTargetUsersLoading(false)
     }
   }
 
@@ -132,27 +144,56 @@ export const JobForm = ({ onSubmit, onCancel, isSubmitting = false }: JobFormPro
           {/* ターゲットユーザー */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
-              監視対象ユーザー（第三者のTwitterアカウント）
+              監視対象ユーザー（登録済みユーザーから選択）
             </label>
-            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-              <p className="text-sm text-green-700">
-                任意のTwitterユーザー名を入力してください（例：elonmusk,
-                taylorswift13など）。事前登録は不要です。
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                placeholder="@username (@ は不要)"
-                value={usernameInput}
-                onChange={e => setUsernameInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-1"
-              />
-              <Button type="button" onClick={addUsername} disabled={!usernameInput.trim()}>
-                追加
-              </Button>
-            </div>
+
+            {availableTargetUsers.length === 0 && !targetUsersLoading && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                <p className="text-sm text-amber-700">
+                  監視対象ユーザーが登録されていません。
+                  <br />
+                  ユーザー管理画面で先にTwitterユーザーを登録してください。
+                </p>
+              </div>
+            )}
+
+            {availableTargetUsers.length > 0 && (
+              <>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-700">
+                    登録済みのTwitterユーザーから選択してください。
+                    新しいユーザーを監視したい場合は、ユーザー管理で先に登録してください。
+                  </p>
+                </div>
+
+                {/* 登録済みユーザー選択 */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-600">
+                    登録済みユーザーから選択
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                    {availableTargetUsers.map(user => (
+                      <button
+                        key={user.username}
+                        type="button"
+                        onClick={() => addUsername(user.username)}
+                        disabled={targetUsernames.includes(user.username)}
+                        className={`p-2 text-left border rounded-md text-sm transition-colors ${
+                          targetUsernames.includes(user.username)
+                            ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-white border-gray-300 hover:bg-blue-50 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="font-medium">@{user.username}</div>
+                        {user.display_name && (
+                          <div className="text-gray-500 text-xs">{user.display_name}</div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* 追加されたユーザー名の表示 */}
             {targetUsernames.length > 0 && (

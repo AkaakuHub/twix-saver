@@ -332,18 +332,23 @@ class DataIngestService:
     
     def process_jsonl_files(self, directory: Path = None) -> Dict[str, Any]:
         """指定ディレクトリ内のJSONLファイルを処理"""
+        # 統計をリセット
+        self.processed_files = 0
+        self.processed_tweets = 0
+        self.processed_articles = 0
+        
         if directory is None:
             directory = Path(settings.raw_data_dir)
         
         if not directory.exists():
             self.logger.warning(f"ディレクトリが存在しません: {directory}")
-            return {"processed_files": 0}
+            return {"processed_files": 0, "processed_tweets": 0, "processed_articles": 0}
         
         jsonl_files = list(directory.glob("*.jsonl"))
         
         if not jsonl_files:
             self.logger.info("処理対象のJSONLファイルがありません")
-            return {"processed_files": 0}
+            return {"processed_files": 0, "processed_tweets": 0, "processed_articles": 0}
         
         self.logger.info(f"{len(jsonl_files)}個のJSONLファイルを処理開始")
         

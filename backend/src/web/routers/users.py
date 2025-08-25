@@ -21,12 +21,15 @@ logger = setup_logger("api.users")
 @router.get("/", response_model=List[TargetUserResponse])
 async def get_users(
     include_inactive: bool = Query(False, description="非アクティブユーザーも含める"),
+    active_only: bool = Query(False, description="アクティブユーザーのみ"),
     search: Optional[str] = Query(None, description="検索クエリ")
 ):
     """全ユーザーを取得"""
     try:
         if search:
             users = user_service.search_users(search)
+        elif active_only:
+            users = user_service.get_active_users()
         else:
             users = user_service.get_all_users(include_inactive=include_inactive)
         

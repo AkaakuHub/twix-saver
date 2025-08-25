@@ -64,13 +64,13 @@ export const useJobs = () => {
     },
   })
 
-  const cancelJobMutation = useMutation({
+  const deleteJobMutation = useMutation({
     mutationFn: async (jobId: string): Promise<void> => {
-      const response = await fetch(`${API_BASE}/jobs/${jobId}/cancel`, {
-        method: 'POST',
+      const response = await fetch(`${API_BASE}/jobs/${jobId}`, {
+        method: 'DELETE',
       })
       if (!response.ok) {
-        throw new Error('ジョブのキャンセルに失敗しました')
+        throw new Error('ジョブの削除に失敗しました')
       }
     },
     onSuccess: () => {
@@ -78,13 +78,13 @@ export const useJobs = () => {
       queryClient.invalidateQueries({ queryKey: ['active-jobs'] })
       addNotification({
         type: 'info',
-        title: 'ジョブをキャンセルしました',
+        title: 'ジョブを削除しました',
       })
     },
     onError: (error: Error) => {
       addNotification({
         type: 'error',
-        title: 'ジョブキャンセルエラー',
+        title: 'ジョブ削除エラー',
         message: error.message,
       })
     },
@@ -216,7 +216,7 @@ export const useJobs = () => {
     error,
     refetch,
     createJob: createJobMutation.mutate,
-    cancelJob: cancelJobMutation.mutate,
+    deleteJob: deleteJobMutation.mutate,
     startJob: startJobMutation.mutate,
     stopJob: stopJobMutation.mutate,
     runJob: runJobMutation.mutate,
@@ -224,7 +224,7 @@ export const useJobs = () => {
     stopAllJobs,
     runPendingJobs: runPendingJobsMutation.mutate,
     isCreating: createJobMutation.isPending,
-    isCancelling: cancelJobMutation.isPending,
+    isDeleting: deleteJobMutation.isPending,
     isStarting: startJobMutation.isPending,
     isStopping: stopJobMutation.isPending,
     isRunning: runJobMutation.isPending,
