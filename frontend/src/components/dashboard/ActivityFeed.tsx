@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { format } from 'date-fns'
 import { API_BASE } from '../../config/env'
 import { ja } from 'date-fns/locale'
@@ -50,9 +51,13 @@ export const ActivityFeed = () => {
     refetchOnWindowFocus: false,
   })
 
-  const allActivities = activities
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 10)
+  const allActivities = useMemo(
+    () =>
+      activities
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 10),
+    [activities]
+  )
 
   if (isLoading) {
     return (

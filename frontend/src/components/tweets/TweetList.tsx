@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useTweets, useTweetManagement } from '../../hooks/useTweets'
 import { formatDateOnly } from '../../utils/dateFormat'
 import { Card } from '../ui/Card'
@@ -56,19 +56,53 @@ export const TweetList = () => {
     setSearchFilters(filters)
   }
 
-  const handleTweetExpand = (tweetId: string) => {
-    const newExpanded = new Set(expandedTweets)
-    if (newExpanded.has(tweetId)) {
-      newExpanded.delete(tweetId)
-    } else {
-      newExpanded.add(tweetId)
-    }
-    setExpandedTweets(newExpanded)
-  }
+  const handleTweetExpand = useCallback(
+    (tweetId: string) => {
+      const newExpanded = new Set(expandedTweets)
+      if (newExpanded.has(tweetId)) {
+        newExpanded.delete(tweetId)
+      } else {
+        newExpanded.add(tweetId)
+      }
+      setExpandedTweets(newExpanded)
+    },
+    [expandedTweets]
+  )
 
-  const scrollToTop = () => {
+  const scrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+  }, [])
+
+  // メモ化されたツイート変換
+  const transformedTweets = useMemo(() => {
+    return tweets.map(tweet => ({
+      ...tweet,
+      tweetCardData: {
+        id: tweet.id,
+        text: tweet.text,
+        author: tweet.author,
+        created_at: tweet.created_at || '',
+        scraped_at: tweet.scraped_at || undefined,
+        public_metrics: tweet.public_metrics,
+        downloaded_media: tweet.downloaded_media,
+        extracted_articles: tweet.extracted_articles?.map((article: Record<string, unknown>) => ({
+          title: (article.title as string) || '',
+          url: (article.url as string) || '',
+          description: (article.description as string) || undefined,
+          image: (article.image as string) || undefined,
+          domain: (article.domain as string) || undefined,
+        })) as
+          | Array<{
+              title: string
+              url: string
+              description?: string
+              image?: string
+              domain?: string
+            }>
+          | undefined,
+      },
+    }))
+  }, [tweets])
 
   if (error) {
     return (
@@ -159,36 +193,11 @@ export const TweetList = () => {
         </div>
       ) : (
         <div className={clsx(viewMode === 'card' ? 'space-y-6' : 'space-y-3')}>
-          {tweets.map(tweet =>
+          {transformedTweets.map(tweet =>
             viewMode === 'card' ? (
               <TweetCard
                 key={tweet.id}
-                tweet={{
-                  id: tweet.id,
-                  text: tweet.text,
-                  author: tweet.author,
-                  created_at: tweet.created_at || '',
-                  scraped_at: tweet.scraped_at || undefined,
-                  public_metrics: tweet.public_metrics,
-                  downloaded_media: tweet.downloaded_media, // ✅ downloaded_mediaを直接渡す
-                  extracted_articles: tweet.extracted_articles?.map(
-                    (article: Record<string, unknown>) => ({
-                      title: (article.title as string) || '',
-                      url: (article.url as string) || '',
-                      description: (article.description as string) || undefined,
-                      image: (article.image as string) || undefined,
-                      domain: (article.domain as string) || undefined,
-                    })
-                  ) as
-                    | Array<{
-                        title: string
-                        url: string
-                        description?: string
-                        image?: string
-                        domain?: string
-                      }>
-                    | undefined,
-                }}
+                tweet={tweet.tweetCardData}
                 expanded={expandedTweets.has(tweet.id.toString())}
                 onExpand={handleTweetExpand}
                 onDelete={deleteTweet}

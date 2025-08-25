@@ -14,7 +14,7 @@ export const useDebounceCallback = <T extends (...args: never[]) => void>(
 
       timeoutRef.current = setTimeout(() => {
         callback(...args)
-      }, delay)
+      }, delay) as unknown as number
     }) as T,
     [callback, delay]
   )

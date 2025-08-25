@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useCallback } from 'react'
 import { API_BASE } from '../../../config/env'
 import {
   LineChart,
@@ -19,6 +20,35 @@ interface TweetTimeData {
 }
 
 export const TweetsTimeChart = () => {
+  const formatXAxisLabel = useCallback((tickItem: string) => {
+    return format(new Date(tickItem), 'MM/dd', { locale: ja })
+  }, [])
+
+  const CustomTooltip = useCallback(
+    ({
+      active,
+      payload,
+      label,
+    }: {
+      active?: boolean
+      payload?: Array<{ value: number; name: string; color: string }>
+      label?: string
+    }) => {
+      if (active && payload && payload.length) {
+        return (
+          <div className="bg-white p-3 border border-gray-200 rounded-lg shadow">
+            <p className="text-sm font-medium">
+              {format(new Date(label || ''), 'MM月dd日', { locale: ja })}
+            </p>
+            <p className="text-sm text-blue-600">収集数: {payload[0].value}件</p>
+          </div>
+        )
+      }
+      return null
+    },
+    []
+  )
+
   const { data, isLoading } = useQuery({
     queryKey: ['tweets-time-chart'],
     queryFn: async (): Promise<TweetTimeData[]> => {
@@ -45,32 +75,6 @@ export const TweetsTimeChart = () => {
     return (
       <div className="h-64 flex items-center justify-center text-gray-500">データがありません</div>
     )
-  }
-
-  const formatXAxisLabel = (tickItem: string) => {
-    return format(new Date(tickItem), 'MM/dd', { locale: ja })
-  }
-
-  const CustomTooltip = ({
-    active,
-    payload,
-    label,
-  }: {
-    active?: boolean
-    payload?: Array<{ value: number; name: string; color: string }>
-    label?: string
-  }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow">
-          <p className="text-sm font-medium">
-            {format(new Date(label || ''), 'MM月dd日', { locale: ja })}
-          </p>
-          <p className="text-sm text-blue-600">収集数: {payload[0].value}件</p>
-        </div>
-      )
-    }
-    return null
   }
 
   return (

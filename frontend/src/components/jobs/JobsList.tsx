@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card'
 import { formatDateOnly } from '../../utils/dateFormat'
 import { Badge } from '../ui/Badge'
@@ -38,7 +38,7 @@ export const JobsList = () => {
   const [selectedJob, setSelectedJob] = useState<ScrapingJobResponse | null>(null)
   const [isResultModalOpen, setIsResultModalOpen] = useState(false)
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = useCallback((status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
         return <Badge variant="success">完了</Badge>
@@ -56,17 +56,22 @@ export const JobsList = () => {
       default:
         return <Badge variant="default">{status}</Badge>
     }
-  }
+  }, [])
 
-  const canStart = (status: string) =>
-    ['pending', 'stopped', 'failed'].includes(status.toLowerCase())
+  const canStart = useCallback(
+    (status: string) => ['pending', 'stopped', 'failed'].includes(status.toLowerCase()),
+    []
+  )
 
-  const canStop = (status: string) => ['running', 'processing'].includes(status.toLowerCase())
+  const canStop = useCallback(
+    (status: string) => ['running', 'processing'].includes(status.toLowerCase()),
+    []
+  )
 
-  const handleViewResult = (job: ScrapingJobResponse) => {
+  const handleViewResult = useCallback((job: ScrapingJobResponse) => {
     setSelectedJob(job)
     setIsResultModalOpen(true)
-  }
+  }, [])
 
   if (isLoading) {
     return (

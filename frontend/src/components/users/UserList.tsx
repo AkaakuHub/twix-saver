@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useUsers } from '../../hooks/useUsers'
 import { useUserStore } from '../../stores/userStore'
 import { UserCard } from './UserCard'
@@ -18,6 +18,49 @@ export const UserList = () => {
 
   const { users, isLoading, error, refetch, createUser, updateUser, deleteUser } = useUsers()
   const { selectedUsers, filters } = useUserStore()
+
+  // All hooks must be called before early returns
+  const filteredUsers = useMemo(() => {
+    if (!users) return []
+    return (users as TargetUserResponse[]).filter((user: TargetUserResponse) => {
+      // 検索フィルタ
+      if (filters.search && !user.username.toLowerCase().includes(filters.search.toLowerCase())) {
+        return false
+      }
+
+      // ステータスフィルタ
+      if (filters.status !== 'all' && user.active !== (filters.status === 'active')) {
+        return false
+      }
+
+      // 優先度フィルタ
+      if (filters.priority !== 'all' && user.priority !== Number(filters.priority)) {
+        return false
+      }
+
+      return true
+    })
+  }, [users, filters])
+
+  // ソート
+  const sortedUsers = useMemo(() => {
+    return [...filteredUsers].sort((a, b) => {
+      const { sortBy, sortOrder } = filters
+      let aValue: unknown = a[sortBy as keyof TargetUserResponse]
+      let bValue: unknown = b[sortBy as keyof TargetUserResponse]
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        aValue = aValue.toLowerCase()
+        bValue = bValue.toLowerCase()
+      }
+
+      if ((aValue as string | number) < (bValue as string | number))
+        return sortOrder === 'asc' ? -1 : 1
+      if ((aValue as string | number) > (bValue as string | number))
+        return sortOrder === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [filteredUsers, filters])
 
   if (isLoading) {
     return (
@@ -53,43 +96,6 @@ export const UserList = () => {
       deleteUser(id)
     }
   }
-
-  const filteredUsers = (users as TargetUserResponse[]).filter((user: TargetUserResponse) => {
-    // 検索フィルタ
-    if (filters.search && !user.username.toLowerCase().includes(filters.search.toLowerCase())) {
-      return false
-    }
-
-    // ステータスフィルタ
-    if (filters.status !== 'all' && user.active !== (filters.status === 'active')) {
-      return false
-    }
-
-    // 優先度フィルタ
-    if (filters.priority !== 'all' && user.priority !== Number(filters.priority)) {
-      return false
-    }
-
-    return true
-  })
-
-  // ソート
-  const sortedUsers = [...filteredUsers].sort((a, b) => {
-    const { sortBy, sortOrder } = filters
-    let aValue: unknown = a[sortBy as keyof TargetUserResponse]
-    let bValue: unknown = b[sortBy as keyof TargetUserResponse]
-
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      aValue = aValue.toLowerCase()
-      bValue = bValue.toLowerCase()
-    }
-
-    if ((aValue as string | number) < (bValue as string | number))
-      return sortOrder === 'asc' ? -1 : 1
-    if ((aValue as string | number) > (bValue as string | number))
-      return sortOrder === 'asc' ? 1 : -1
-    return 0
-  })
 
   return (
     <div className="space-y-6">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { formatTweetCreatedAt, formatScrapedAt } from '../../utils/dateFormat'
 import {
   HeartIcon,
@@ -123,18 +123,18 @@ export const TweetCard = ({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const formatNumber = (num: number) => {
+  const formatNumber = useCallback((num: number) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
     return num.toString()
-  }
+  }, [])
 
-  const getTotalEngagement = () => {
+  const getTotalEngagement = useCallback(() => {
     const { like_count, retweet_count, reply_count, quote_count } = tweet.public_metrics
     return like_count + retweet_count + reply_count + quote_count
-  }
+  }, [tweet.public_metrics])
 
-  const renderText = (text: string) => {
+  const renderText = useCallback((text: string) => {
     let formattedText = text
 
     // ハッシュタグをハイライト
@@ -156,10 +156,10 @@ export const TweetCard = ({
     )
 
     return <div dangerouslySetInnerHTML={{ __html: formattedText }} />
-  }
+  }, [])
 
   // ダウンロード済みメディアの処理
-  const getMediaUrl = (media: { local_url?: string; media_id?: string }) => {
+  const getMediaUrl = useCallback((media: { local_url?: string; media_id?: string }) => {
     // APIレスポンスのlocal_urlを使用（推奨）
     if (media.local_url) {
       return `${BACKEND_URL}${media.local_url}`
@@ -171,30 +171,57 @@ export const TweetCard = ({
     // 両方とも無効な場合は空文字列を返さない
     console.warn('Invalid media object:', media)
     return null
-  }
+  }, [])
 
   // 全体の順番を保持したメディア取得（position順にソート済み）
-  const allMediaSorted =
-    tweet.downloaded_media?.slice().sort((a, b) => {
-      // positionがある場合はそれで比較、なければ0として扱う
-      const posA = a.position || 0
-      const posB = b.position || 0
-      if (posA !== posB) return posA - posB
-      // 同じpositionでは添付画像を優先
-      return a.order_type === 'attachment' && b.order_type === 'link' ? -1 : 1
-    }) || []
+  const allMediaSorted = useMemo(
+    () =>
+      tweet.downloaded_media?.slice().sort((a, b) => {
+        // positionがある場合はそれで比較、なければ0として扱う
+        const posA = a.position || 0
+        const posB = b.position || 0
+        if (posA !== posB) return posA - posB
+        // 同じpositionでは添付画像を優先
+        return a.order_type === 'attachment' && b.order_type === 'link' ? -1 : 1
+      }) || [],
+    [tweet.downloaded_media]
+  )
 
   // 添付画像（Twitter画像）を取得
-  const attachedImages = allMediaSorted.filter(m => m.type === 'photo') || []
+  const attachedImages = useMemo(
+    () => allMediaSorted.filter(m => m.type === 'photo') || [],
+    [allMediaSorted]
+  )
   // リンク先画像を取得
-  const linkedImages = allMediaSorted.filter(m => m.type === 'linked_image') || []
+  const linkedImages = useMemo(
+    () => allMediaSorted.filter(m => m.type === 'linked_image') || [],
+    [allMediaSorted]
+  )
 
   // 表示するメディアを決定（添付画像のみ、リンク先画像は別途管理）
-  const attachedVisibleMedia = attachedImages.slice(0, isExpanded ? undefined : 4)
+  const attachedVisibleMedia = useMemo(
+    () => attachedImages.slice(0, isExpanded ? undefined : 4),
+    [attachedImages, isExpanded]
+  )
   const hasMoreAttachedMedia = attachedImages.length > 4 && !isExpanded
 
+  // 添付画像のURLをメモ化
+  const attachedMediaUrls = useMemo(
+    () => attachedVisibleMedia.map(media => getMediaUrl(media) || ''),
+    [attachedVisibleMedia, getMediaUrl]
+  )
+
+  // リンク画像のURLをメモ化
+  const linkedMediaUrls = useMemo(
+    () => linkedImages.map(media => getMediaUrl(media) || ''),
+    [linkedImages, getMediaUrl]
+  )
+
   const maxVisibleArticles = isExpanded ? undefined : 2
-  const visibleArticles = tweet.extracted_articles?.slice(0, maxVisibleArticles) || []
+  const visibleArticles = useMemo(
+    () => tweet.extracted_articles?.slice(0, maxVisibleArticles) || [],
+    [tweet.extracted_articles, maxVisibleArticles]
+  )
   const hasMoreArticles =
     tweet.extracted_articles && tweet.extracted_articles.length > (maxVisibleArticles || 0)
 
@@ -313,13 +340,13 @@ export const TweetCard = ({
                         key={`attached-${index}`}
                         className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
                         onClick={() => {
-                          const url = getMediaUrl(media)
+                          const url = attachedMediaUrls[index]
                           if (url) setSelectedImage(url)
                         }}
                       >
-                        {getMediaUrl(media) ? (
+                        {attachedMediaUrls[index] ? (
                           <img
-                            src={getMediaUrl(media)!}
+                            src={attachedMediaUrls[index]}
                             alt=""
                             className="w-full h-full object-cover"
                             loading="lazy"
@@ -384,13 +411,13 @@ export const TweetCard = ({
                           key={`linked-${index}`}
                           className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
                           onClick={() => {
-                            const url = getMediaUrl(media)
+                            const url = linkedMediaUrls[index]
                             if (url) setSelectedImage(url)
                           }}
                         >
-                          {getMediaUrl(media) ? (
+                          {linkedMediaUrls[index] ? (
                             <img
-                              src={getMediaUrl(media)!}
+                              src={linkedMediaUrls[index]}
                               alt=""
                               className="w-full h-full object-cover"
                               loading="lazy"

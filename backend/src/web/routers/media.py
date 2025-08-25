@@ -3,11 +3,8 @@
 保存された画像データを提供
 """
 
-from typing import Optional
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Response
-from fastapi.responses import StreamingResponse
-from io import BytesIO
 
 from src.utils.data_manager import mongodb_manager
 from src.utils.logger import setup_logger
@@ -23,13 +20,13 @@ async def get_media(media_id: str) -> Response:
     try:
         # MongoDB から画像データを取得
         media_doc = mongodb_manager.db.media_files.find_one({"_id": media_id})
-        
+
         if not media_doc:
             raise HTTPException(
-                status_code=404, 
+                status_code=404,
                 detail=f"指定されたメディアが見つかりません: {media_id}"
             )
-        
+
         # ファイルパスを取得してファイルを読み込み
         file_path_name = media_doc.get("file_path")
         if not file_path_name:
@@ -40,14 +37,14 @@ async def get_media(media_id: str) -> Response:
         
         # 完全なファイルパス
         full_file_path = Path(settings.images_dir) / file_path_name
-        
+
         try:
             if not full_file_path.exists():
                 raise HTTPException(
                     status_code=404,
                     detail=f"メディアファイルが見つかりません: {file_path_name}"
                 )
-            
+
             with open(full_file_path, 'rb') as f:
                 image_bytes = f.read()
         except Exception as e:
@@ -56,7 +53,7 @@ async def get_media(media_id: str) -> Response:
                 status_code=500,
                 detail="画像ファイルの読み込みに失敗しました"
             )
-        
+
         # MIMEタイプを取得
         content_type = media_doc.get("content_type", "image/jpeg")
         
@@ -69,13 +66,13 @@ async def get_media(media_id: str) -> Response:
                 "Content-Length": str(len(image_bytes))
             }
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"メディア取得エラー ({media_id}): {e}")
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail=f"メディア取得に失敗しました: {str(e)}"
         )
 
@@ -88,7 +85,7 @@ async def get_media_info(media_id: str) -> dict:
             {"_id": media_id},
             {"_id": 1, "content_type": 1, "size": 1, "created_at": 1}
         )
-        
+
         if not media_doc:
             raise HTTPException(
                 status_code=404,
@@ -101,7 +98,7 @@ async def get_media_info(media_id: str) -> dict:
             "size": media_doc.get("size"),
             "created_at": media_doc.get("created_at")
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
