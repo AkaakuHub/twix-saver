@@ -232,62 +232,100 @@ async def get_activities(limit: int = 50):
     try:
         activities = []
 
-        # 最近のジョブ（過去24時間）
-        recent_jobs = job_service.get_recent_jobs(hours=24)
-        for job in recent_jobs:
-            activities.append(
-                {
-                    "id": str(job.id),
-                    "type": "job",
-                    "action": f"ジョブ{job.status}",
-                    "message": f"スクレイピングジョブ '{job.id}' が{job.status}になりました",
-                    "timestamp": job.created_at or job.updated_at,
-                    "data": {
-                        "job_id": job.id,
-                        "status": job.status,
-                        "target_users": len(job.target_usernames) if job.target_usernames else 0,
-                    },
-                }
-            )
+        # デバッグ: 全ジョブ数を確認
+        all_jobs = job_service.get_jobs(limit=10)
+        logger.info(f"デバッグ: 全ジョブ数: {len(all_jobs)}")
 
-        # 最近のツイート（過去1時間）
-        from datetime import datetime, timedelta
+        # 最近のジョブ（全てのジョブから最新10件取得）
+        try:
+            # 時間フィルターではなく全ジョブから最新を取得
+            recent_jobs = job_service.get_jobs(limit=10)
+            logger.info(f"デバッグ: 最新ジョブ数: {len(recent_jobs)}")
 
-        one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+            for job in recent_jobs:
+                # タイムスタンプの処理を改善
+                timestamp = None
+                if hasattr(job, "completed_at") and job.completed_at:
+                    timestamp = job.completed_at
+                elif hasattr(job, "created_at") and job.created_at:
+                    timestamp = job.created_at
+                elif hasattr(job, "updated_at") and job.updated_at:
+                    timestamp = job.updated_at
 
-        recent_tweets = list(
-            mongodb_manager.tweets_collection.find({"scraped_at": {"$gte": one_hour_ago}})
-            .sort("scraped_at", -1)
-            .limit(20)
-        )
+                # datetimeオブジェクトか文字列かを判定
+                if timestamp:
+                    if isinstance(timestamp, str):
+                        # 既に文字列の場合はそのまま使用
+                        timestamp_str = timestamp
+                    else:
+                        # datetimeオブジェクトの場合はISO形式に変換
+                        timestamp_str = timestamp.isoformat()
+                else:
+                    timestamp_str = None
 
-        for tweet in recent_tweets:
-            username = ""
-            if "legacy" in tweet and "user" in tweet["legacy"]:
-                username = tweet["legacy"]["user"].get("screen_name", "")
-            elif "core" in tweet and "user_results" in tweet["core"]:
-                user_result = tweet["core"]["user_results"].get("result", {})
-                if "legacy" in user_result:
-                    username = user_result["legacy"].get("screen_name", "")
+                activities.append(
+                    {
+                        "id": str(job.id),
+                        "type": "job_completed"
+                        if job.status == "completed"
+                        else "job_failed"
+                        if job.status == "failed"
+                        else "system_info",
+                        "message": f"スクレイピングジョブ '{job.id[:8]}...' が{job.status}になりました",
+                        "timestamp": timestamp_str,
+                        "details": {
+                            "job_id": job.id,
+                            "status": job.status,
+                            "target_users": len(job.target_usernames) if job.target_usernames else 0,
+                        },
+                    }
+                )
+        except Exception as e:
+            logger.warning(f"ジョブアクティビティ取得エラー: {e}")
 
-            activities.append(
-                {
-                    "id": tweet.get("id_str", str(tweet.get("_id", ""))),
-                    "type": "tweet",
-                    "action": "ツイート収集",
-                    "message": f"@{username} のツイートを収集しました",
-                    "timestamp": tweet.get("scraped_at"),
-                    "data": {
-                        "tweet_id": tweet.get("id_str"),
-                        "username": username,
-                        "has_articles": bool(tweet.get("extracted_articles")),
-                        "has_media": bool(tweet.get("downloaded_media")),
-                    },
-                }
-            )
+        # 最近のツイート（全てのツイートから最新10件取得）
+        try:
+            recent_tweets = list(mongodb_manager.tweets_collection.find({}).sort("scraped_at", -1).limit(10))
+            logger.info(f"デバッグ: 最新ツイート数: {len(recent_tweets)}")
+
+            for tweet in recent_tweets:
+                username = ""
+                if "legacy" in tweet and "user" in tweet["legacy"]:
+                    username = tweet["legacy"]["user"].get("screen_name", "")
+                elif "core" in tweet and "user_results" in tweet["core"]:
+                    user_result = tweet["core"]["user_results"].get("result", {})
+                    if "legacy" in user_result:
+                        username = user_result["legacy"].get("screen_name", "")
+
+                # タイムスタンプの処理
+                scraped_at = tweet.get("scraped_at")
+                if scraped_at:
+                    if isinstance(scraped_at, str):
+                        timestamp_str = scraped_at
+                    else:
+                        timestamp_str = scraped_at.isoformat()
+                else:
+                    timestamp_str = None
+
+                activities.append(
+                    {
+                        "id": tweet.get("id_str", str(tweet.get("_id", ""))),
+                        "type": "tweet_collected",
+                        "message": f"@{username} のツイートを収集しました",
+                        "timestamp": timestamp_str,
+                        "details": {
+                            "tweet_id": tweet.get("id_str"),
+                            "username": username,
+                            "has_articles": bool(tweet.get("extracted_articles")),
+                            "has_media": bool(tweet.get("downloaded_media")),
+                        },
+                    }
+                )
+        except Exception as e:
+            logger.warning(f"ツイートアクティビティ取得エラー: {e}")
 
         # アクティビティを時系列でソート
-        activities.sort(key=lambda x: x["timestamp"] or datetime.min, reverse=True)
+        activities.sort(key=lambda x: x["timestamp"] or "1970-01-01T00:00:00", reverse=True)
 
         # 制限数まで取得
         activities = activities[:limit]

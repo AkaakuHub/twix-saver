@@ -24,9 +24,16 @@ export const Dashboard = () => {
 
   const calculateSuccessRate = () => {
     if (!jobStats || typeof jobStats !== 'object') return 0
-    const stats = jobStats as { successful?: number; total?: number }
-    if (!stats.total || stats.total === 0) return 0
-    return Math.round(((stats.successful || 0) / stats.total) * 100)
+    const stats = jobStats as {
+      completed_jobs?: number
+      total_jobs?: number
+      success_rate?: number
+    }
+    // success_rateが直接利用可能な場合はそれを使用
+    if (stats.success_rate !== undefined) return Math.round(stats.success_rate)
+    // そうでなければ計算
+    if (!stats.total_jobs || stats.total_jobs === 0) return 0
+    return Math.round(((stats.completed_jobs || 0) / stats.total_jobs) * 100)
   }
 
   const isLoading = usersLoading || activeJobsLoading || jobStatsLoading || tweetStatsLoading
@@ -65,28 +72,24 @@ export const Dashboard = () => {
         <StatsCard
           title="監視ユーザー数"
           value={(users as unknown[]).length || 0}
-          previousValue={(users as unknown[]).length || 0}
           icon="users"
           color="blue"
         />
         <StatsCard
           title="収集ツイート数"
-          value={(tweetStats as { total?: number })?.total || 0}
-          previousValue={(tweetStats as { yesterday?: number })?.yesterday || 0}
+          value={(tweetStats as { total_tweets?: number })?.total_tweets || 0}
           icon="tweets"
           color="green"
         />
         <StatsCard
           title="実行中ジョブ"
           value={(activeJobs as unknown[]).length || 0}
-          previousValue={0}
           icon="jobs"
           color="yellow"
         />
         <StatsCard
           title="ジョブ成功率"
           value={calculateSuccessRate()}
-          previousValue={(jobStats as { previousSuccessRate?: number })?.previousSuccessRate || 0}
           icon="success"
           color="purple"
           suffix="%"

@@ -370,7 +370,7 @@ class JobService:
 
             # 基本統計
             pipeline = [
-                {"$match": {"created_at": {"$gte": since}}},
+                {"$match": {"created_at": {"$gte": since.isoformat()}}},
                 {
                     "$group": {
                         "_id": None,

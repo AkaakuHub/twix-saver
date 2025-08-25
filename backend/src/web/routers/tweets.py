@@ -33,7 +33,7 @@ async def get_tweets(
     """ツイート一覧を取得（検索・フィルタ機能付き）"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         # クエリ構築
         query = {}
@@ -145,7 +145,7 @@ async def search_tweets(q: str = Query(..., min_length=1, description="検索ク
     """ツイート全文検索"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         # 全文検索クエリ
         search_query = {
@@ -186,7 +186,7 @@ async def get_user_latest_tweets(username: str, limit: int = Query(10, ge=1, le=
     """特定ユーザーの最新ツイートを取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         # ユーザー名の正規化
         username = username.lstrip("@").lower()
@@ -232,18 +232,22 @@ async def get_tweet_stats():
     """ツイート統計を取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         # 基本統計
         total_tweets = mongodb_manager.tweets_collection.count_documents({})
 
-        # 今日のツイート数
-        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        tweets_today = mongodb_manager.tweets_collection.count_documents({"scraped_at": {"$gte": today}})
+        # 今日のツイート数（過去24時間）
+        twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+        tweets_today = mongodb_manager.tweets_collection.count_documents(
+            {"scraped_at": {"$gte": twenty_four_hours_ago.isoformat()}}
+        )
 
-        # 今週のツイート数
-        week_ago = today - timedelta(days=7)
-        tweets_this_week = mongodb_manager.tweets_collection.count_documents({"scraped_at": {"$gte": week_ago}})
+        # 今週のツイート数（過去7日間）
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        tweets_this_week = mongodb_manager.tweets_collection.count_documents(
+            {"scraped_at": {"$gte": week_ago.isoformat()}}
+        )
 
         # 記事付きツイート数
         tweets_with_articles = mongodb_manager.tweets_collection.count_documents(
@@ -285,17 +289,22 @@ async def get_tweet_time_series(days: int = Query(7, ge=1, le=30)):
     """ツイート時系列データを取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         # 指定日数前からのデータを集計
         start_date = datetime.utcnow() - timedelta(days=days)
 
-        # 日別のツイート数を集計
+        # 日別のツイート数を集計（scraped_atは文字列なので特別な処理が必要）
         pipeline = [
-            {"$match": {"scraped_at": {"$gte": start_date}}},
+            {"$match": {"scraped_at": {"$gte": start_date.isoformat()}}},
+            {
+                "$addFields": {
+                    "scraped_date": {"$substr": ["$scraped_at", 0, 10]}  # YYYY-MM-DD部分を抽出
+                }
+            },
             {
                 "$group": {
-                    "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$scraped_at"}},
+                    "_id": "$scraped_date",
                     "count": {"$sum": 1},
                 }
             },
@@ -326,18 +335,22 @@ async def get_tweet_statistics():
     """ツイート統計情報を取得（詳細版）"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         # 基本統計
         total_tweets = mongodb_manager.tweets_collection.count_documents({})
 
-        # 今日のツイート数
-        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        tweets_today = mongodb_manager.tweets_collection.count_documents({"scraped_at": {"$gte": today}})
+        # 今日のツイート数（過去24時間）
+        twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+        tweets_today = mongodb_manager.tweets_collection.count_documents(
+            {"scraped_at": {"$gte": twenty_four_hours_ago.isoformat()}}
+        )
 
-        # 今週のツイート数
-        week_ago = today - timedelta(days=7)
-        tweets_this_week = mongodb_manager.tweets_collection.count_documents({"scraped_at": {"$gte": week_ago}})
+        # 今週のツイート数（過去7日間）
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        tweets_this_week = mongodb_manager.tweets_collection.count_documents(
+            {"scraped_at": {"$gte": week_ago.isoformat()}}
+        )
 
         # 記事付きツイート数
         tweets_with_articles = mongodb_manager.tweets_collection.count_documents(
@@ -403,7 +416,7 @@ async def get_tweet(tweet_id: str):
     """特定ツイートの詳細を取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         doc = mongodb_manager.tweets_collection.find_one({"$or": [{"id_str": tweet_id}, {"rest_id": tweet_id}]})
 
@@ -425,7 +438,7 @@ async def get_media_file(media_id: str):
     """メディアファイルをDBから配信"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         # MongoDBからメディアデータを取得
         media_doc = mongodb_manager.db.media_files.find_one({"_id": media_id})
@@ -436,7 +449,7 @@ async def get_media_file(media_id: str):
         # ファイルパスを取得してファイルを読み込み
         file_path_name = media_doc.get("file_path")
         if not file_path_name:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         # 完全なファイルパス
         full_file_path = Path(settings.images_dir) / file_path_name
@@ -470,7 +483,7 @@ async def delete_tweet(tweet_id: str):
     """ツイートを削除"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         # ツイートの存在確認
         existing_tweet = mongodb_manager.tweets_collection.find_one(
@@ -519,7 +532,7 @@ async def refresh_all_tweets():
     """すべてのツイートを再取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         # アクティブなユーザー一覧を取得
         from src.services.user_service import user_service
@@ -540,7 +553,7 @@ async def refresh_all_tweets():
         )
 
         if not job_id:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         logger.info(f"全ツイート再取得ジョブを作成: {job_id}")
         return {
@@ -562,7 +575,7 @@ async def refresh_single_tweet(tweet_id: str):
     """特定ツイートを再取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         # ツイートの存在確認
         logger.info(f"ツイート検索開始: {tweet_id}")
@@ -649,7 +662,7 @@ async def refresh_single_tweet(tweet_id: str):
         logger.info(f"ジョブ作成結果: job_id={job_id}")
 
         if not job_id:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         logger.info(f"ツイート '{tweet_id}' の再取得ジョブを作成: {job_id}")
         return {
@@ -672,7 +685,7 @@ async def refresh_user_tweets(username: str):
     """特定ユーザーのツイートを再取得"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         # ユーザーの存在確認
         from src.services.user_service import user_service
@@ -696,7 +709,7 @@ async def refresh_user_tweets(username: str):
         )
 
         if not job_id:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         logger.info(f"ユーザー '{username}' のツイート再取得ジョブを作成: {job_id}")
         return {
@@ -718,7 +731,7 @@ async def delete_tweets_bulk(request_body: dict[str, list[str]]):
     """複数ツイートの一括削除"""
     try:
         if not mongodb_manager.is_connected:
-            raise HTTPException(status_code=500, detail="\1") from None
+            raise HTTPException(status_code=500, detail="データベース接続エラー") from None
 
         tweet_ids = request_body.get("tweet_ids", [])
         if not tweet_ids:

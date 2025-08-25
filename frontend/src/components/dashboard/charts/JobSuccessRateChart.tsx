@@ -79,7 +79,7 @@ export const JobSuccessRateChart = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['job-success-chart'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE}/jobs/success-rate`)
+      const response = await fetch(`${API_BASE}/jobs/success-rate/`)
       if (!response.ok) {
         throw new Error('ジョブ成功率データの取得に失敗しました')
       }

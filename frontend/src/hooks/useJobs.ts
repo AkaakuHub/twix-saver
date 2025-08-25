@@ -17,7 +17,7 @@ export const useJobs = () => {
     queryKey: ['jobs'],
     queryFn: async (): Promise<ScrapingJobResponse[]> => {
       try {
-        const response = await fetch(`${API_BASE}/jobs`)
+        const response = await fetch(`${API_BASE}/jobs/`)
         if (!response.ok) {
           throw new Error('ジョブ一覧の取得に失敗しました')
         }
@@ -38,7 +38,7 @@ export const useJobs = () => {
 
   const createJobMutation = useMutation({
     mutationFn: async (jobData: ScrapingJobCreate): Promise<ScrapingJobResponse> => {
-      const response = await fetch(`${API_BASE}/jobs`, {
+      const response = await fetch(`${API_BASE}/jobs/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(jobData),
@@ -238,7 +238,7 @@ export const useActiveJobs = () => {
     queryKey: ['active-jobs'],
     queryFn: async (): Promise<ScrapingJobResponse[]> => {
       try {
-        const response = await fetch(`${API_BASE}/jobs/active`)
+        const response = await fetch(`${API_BASE}/jobs/active/`)
         if (!response.ok) {
           throw new Error('アクティブジョブの取得に失敗しました')
         }
@@ -262,7 +262,7 @@ export const useJobStats = () => {
     queryKey: ['job-stats'],
     queryFn: async () => {
       try {
-        const response = await fetch(`${API_BASE}/jobs/stats`)
+        const response = await fetch(`${API_BASE}/jobs/stats/`)
         if (!response.ok) {
           throw new Error('ジョブ統計の取得に失敗しました')
         }
