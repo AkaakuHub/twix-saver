@@ -143,6 +143,11 @@ export const TweetCard = ({
         label: '失敗',
         variant: 'error' as const,
       },
+      [ImageProcessingStatus.SKIPPED]: {
+        icon: '📸⏭️',
+        label: 'スキップ',
+        variant: 'default' as const,
+      },
     }
 
     const config = statusConfig[status as keyof typeof statusConfig]

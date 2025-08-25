@@ -229,7 +229,7 @@ export interface FailedTweetsResponse {
 
 export interface ImageProcessingRetryRequest {
   max_tweets?: number
-  username?: string | null
+  username?: string
   force_reprocess?: boolean
 }
 

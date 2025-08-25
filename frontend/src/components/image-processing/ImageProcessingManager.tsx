@@ -22,7 +22,7 @@ export const ImageProcessingManager = () => {
   const [retryLoading, setRetryLoading] = useState(false)
   const [retryOptions, setRetryOptions] = useState<ImageProcessingRetryRequest>({
     max_tweets: 100,
-    username: null,
+    username: undefined,
     force_reprocess: false,
   })
 
@@ -229,7 +229,7 @@ export const ImageProcessingManager = () => {
                     onChange={e =>
                       setRetryOptions({
                         ...retryOptions,
-                        username: e.target.value || null,
+                        username: e.target.value || undefined,
                       })
                     }
                     placeholder="@username"
