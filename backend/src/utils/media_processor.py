@@ -127,15 +127,14 @@ class MediaProcessor:
             self.logger.error(f"画像ファイル保存エラー: {e}")
             return None
     
-    async def process_tweet_attachments(self, tweet: Dict, db_manager) -> List[Dict]:
-        """ツイート添付画像を処理"""
-        media_items = []
-        processed_urls = set()  # 重複チェック用
-        
+async def process_tweet_media(self, tweet: Dict, db_manager) -> Dict:
+        """ツイートのすべてのメディア（添付画像+リンク先画像）を統合された順番で処理"""
         try:
-            # extended_entities.media を優先、なければ entities.media を使用
-            media_sources = []
+            all_media = []
+            processed_urls = set()  # 重複チェック用
             
+            # Step 1: 添付画像を処理（Twitter画像、extended_entities.mediaまたはentities.media）
+            media_sources = []
             if 'legacy' in tweet:
                 # extended_entities が存在する場合はそれを優先
                 if 'extended_entities' in tweet['legacy'] and 'media' in tweet['legacy']['extended_entities']:
@@ -144,6 +143,7 @@ class MediaProcessor:
                 elif 'entities' in tweet['legacy'] and 'media' in tweet['legacy']['entities']:
                     media_sources = tweet['legacy']['entities']['media']
             
+            # 添付画像の処理（indices情報で順番を保持）
             for media in media_sources:
                 if media.get('type') == 'photo':
                     media_url = media.get('media_url_https') or media.get('media_url')
@@ -155,64 +155,50 @@ class MediaProcessor:
                             media_id = self.save_image_to_db(image_data, mime_type, db_manager)
                             
                             if media_id:
-                                media_items.append({
+                                # indices情報を取得して順番を保持
+                                indices = media.get('indices', [0, 0])  # デフォルトは[0, 0]
+                                all_media.append({
                                     'media_id': media_id,
                                     'original_url': media_url,
                                     'type': 'photo',
                                     'mime_type': mime_type,
-                                    'size': len(image_data)
+                                    'size': len(image_data),
+                                    'position': indices[0],  # テキスト内での開始位置
+                                    'order_type': 'attachment'  # 添付画像
                                 })
             
-        except Exception as e:
-            self.logger.error(f"ツイート添付画像処理エラー: {e}")
-        
-        return media_items
-    
-    async def process_tweet_link_images(self, tweet: Dict, db_manager) -> List[Dict]:
-        """ツイート内リンクの画像を処理"""
-        image_items = []
-        
-        try:
-            # legacy.entities.urls から画像URLを抽出
+            # Step 2: リンク先画像を処理（URL entities、indices情報で順番を保持）
             if 'legacy' in tweet and 'entities' in tweet['legacy'] and 'urls' in tweet['legacy']['entities']:
                 for url_entity in tweet['legacy']['entities']['urls']:
                     expanded_url = url_entity.get('expanded_url')
-                    if expanded_url and self.is_image_url(expanded_url):
+                    if expanded_url and self.is_image_url(expanded_url) and expanded_url not in processed_urls:
+                        processed_urls.add(expanded_url)
                         result = await self.download_image(expanded_url)
                         if result:
                             image_data, mime_type = result
                             media_id = self.save_image_to_db(image_data, mime_type, db_manager)
                             
                             if media_id:
-                                image_items.append({
+                                # indices情報を取得して順番を保持
+                                indices = url_entity.get('indices', [0, 0])  # デフォルトは[0, 0]
+                                all_media.append({
                                     'media_id': media_id,
                                     'original_url': expanded_url,
                                     'type': 'linked_image',
                                     'mime_type': mime_type,
-                                    'size': len(image_data)
+                                    'size': len(image_data),
+                                    'position': indices[0],  # テキスト内での開始位置
+                                    'order_type': 'link'  # リンク先画像
                                 })
-                        
-        except Exception as e:
-            self.logger.error(f"リンク先画像処理エラー: {e}")
-        
-        return image_items
-    
-    async def process_tweet_media(self, tweet: Dict, db_manager) -> Dict:
-        """ツイートのすべてのメディア（添付画像+リンク先画像）を処理"""
-        try:
-            # 添付画像を処理
-            attachment_media = await self.process_tweet_attachments(tweet, db_manager)
             
-            # リンク先画像を処理
-            linked_images = await self.process_tweet_link_images(tweet, db_manager)
-            
-            # 統合
-            all_media = attachment_media + linked_images
+            # Step 3: position（テキスト内の位置）で順番をソート
+            # 添付画像を優先し、同じposition内では添付画像 → リンク画像の順
+            all_media.sort(key=lambda x: (x['position'], x['order_type'] == 'link'))
             
             if all_media:
                 # ツイートにdownloaded_mediaフィールドを追加
                 tweet['downloaded_media'] = all_media
-                self.logger.info(f"ツイート {tweet.get('id_str', 'unknown')} のメディア処理完了: {len(all_media)}件")
+                self.logger.info(f"ツイート {tweet.get('id_str', 'unknown')} のメディア処理完了: {len(all_media)}件（順番保持）")
             
         except Exception as e:
             self.logger.error(f"ツイートメディア処理エラー: {e}")

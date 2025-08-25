@@ -12,7 +12,16 @@ const JST_TIMEZONE = 'Asia/Tokyo'
  * 例: 2025-08-25 21:30:45.123
  */
 export const formatDateTimeJST = (date: string | Date): string => {
+  if (!date) return '-'
+
   const dateObj = typeof date === 'string' ? new Date(date) : date
+
+  // 無効な日時値をチェック
+  if (isNaN(dateObj.getTime())) {
+    console.warn('Invalid date value:', date)
+    return '-'
+  }
+
   const jstDate = toZonedTime(dateObj, JST_TIMEZONE)
   return format(jstDate, 'yyyy-MM-dd HH:mm:ss.SSS', { timeZone: JST_TIMEZONE })
 }
@@ -20,14 +29,16 @@ export const formatDateTimeJST = (date: string | Date): string => {
 /**
  * ツイート作成時刻用フォーマット（年月日時分秒ミリ秒）
  */
-export const formatTweetCreatedAt = (date: string): string => {
+export const formatTweetCreatedAt = (date: string | null | undefined): string => {
+  if (!date) return '-'
   return formatDateTimeJST(date)
 }
 
 /**
  * スクレイピング時刻用フォーマット（年月日時分秒ミリ秒）
  */
-export const formatScrapedAt = (date: string): string => {
+export const formatScrapedAt = (date: string | null | undefined): string => {
+  if (!date) return '-'
   return formatDateTimeJST(date)
 }
 

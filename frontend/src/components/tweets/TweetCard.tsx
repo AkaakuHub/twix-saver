@@ -50,6 +50,8 @@ interface Tweet {
     mime_type: string
     size: number
     local_url?: string
+    position?: number
+    order_type?: 'attachment' | 'link'
   }>
   extracted_articles?: Array<{
     title: string
@@ -163,13 +165,29 @@ export const TweetCard = ({
       return `${BACKEND_URL}${media.local_url}`
     }
     // フォールバック：media_idから構築
-    return `${BACKEND_URL}/api/tweets/media/${media.media_id}`
+    if (media.media_id) {
+      return `${BACKEND_URL}/api/tweets/media/${media.media_id}`
+    }
+    // 両方とも無効な場合は空文字列を返さない
+    console.warn('Invalid media object:', media)
+    return null
   }
 
+  // 全体の順番を保持したメディア取得（position順にソート済み）
+  const allMediaSorted =
+    tweet.downloaded_media?.slice().sort((a, b) => {
+      // positionがある場合はそれで比較、なければ0として扱う
+      const posA = a.position || 0
+      const posB = b.position || 0
+      if (posA !== posB) return posA - posB
+      // 同じpositionでは添付画像を優先
+      return a.order_type === 'attachment' && b.order_type === 'link' ? -1 : 1
+    }) || []
+
   // 添付画像（Twitter画像）を取得
-  const attachedImages = tweet.downloaded_media?.filter(m => m.type === 'photo') || []
+  const attachedImages = allMediaSorted.filter(m => m.type === 'photo') || []
   // リンク先画像を取得
-  const linkedImages = tweet.downloaded_media?.filter(m => m.type === 'linked_image') || []
+  const linkedImages = allMediaSorted.filter(m => m.type === 'linked_image') || []
 
   // 表示するメディアを決定（添付画像のみ、リンク先画像は別途管理）
   const attachedVisibleMedia = attachedImages.slice(0, isExpanded ? undefined : 4)
@@ -294,14 +312,23 @@ export const TweetCard = ({
                       <div
                         key={`attached-${index}`}
                         className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                        onClick={() => setSelectedImage(getMediaUrl(media))}
+                        onClick={() => {
+                          const url = getMediaUrl(media)
+                          if (url) setSelectedImage(url)
+                        }}
                       >
-                        <img
-                          src={getMediaUrl(media)}
-                          alt=""
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
+                        {getMediaUrl(media) ? (
+                          <img
+                            src={getMediaUrl(media)!}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            画像読み込み失敗
+                          </div>
+                        )}
                         <div className="absolute bottom-1 right-1 bg-black bg-opacity-70 text-white text-xs px-1.5 py-0.5 rounded">
                           {(media.size / 1024).toFixed(0)}KB
                         </div>
@@ -356,14 +383,23 @@ export const TweetCard = ({
                         <div
                           key={`linked-${index}`}
                           className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                          onClick={() => setSelectedImage(getMediaUrl(media))}
+                          onClick={() => {
+                            const url = getMediaUrl(media)
+                            if (url) setSelectedImage(url)
+                          }}
                         >
-                          <img
-                            src={getMediaUrl(media)}
-                            alt=""
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
+                          {getMediaUrl(media) ? (
+                            <img
+                              src={getMediaUrl(media)!}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              画像読み込み失敗
+                            </div>
+                          )}
                           <div className="absolute bottom-1 right-1 bg-black bg-opacity-70 text-white text-xs px-1.5 py-0.5 rounded">
                             {(media.size / 1024).toFixed(0)}KB
                           </div>

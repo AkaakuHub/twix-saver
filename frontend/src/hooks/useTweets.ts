@@ -18,6 +18,8 @@ interface RawTweet {
     mime_type: string
     size: number
     local_url?: string
+    position?: number
+    order_type?: 'attachment' | 'link'
   }>
   created_at?: string
   scraped_at?: string

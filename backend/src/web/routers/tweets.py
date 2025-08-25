@@ -454,6 +454,7 @@ async def get_media_file(media_id: str):
         full_file_path = Path(settings.images_dir) / file_path_name
         
         if not full_file_path.exists():
+            logger.error(f"メディアファイルが見つかりません: {full_file_path} (media_id: {media_id})")
             raise HTTPException(
                 status_code=404,
                 detail=f"メディアファイルが見つかりません: {file_path_name}"
@@ -865,11 +866,11 @@ def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
     if "legacy" in doc and "created_at" in doc["legacy"]:
         # Twitter API の日時形式をパース
         try:
-            from datetime import datetime
             created_at_str = doc["legacy"]["created_at"]
             # "Wed Oct 10 20:19:24 +0000 2018" 形式
             created_at = datetime.strptime(created_at_str, "%a %b %d %H:%M:%S %z %Y")
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            logger.warning(f"created_at パースエラー: '{created_at_str}' - {e}")
             pass
     
     # スクレイピング日時
@@ -877,7 +878,8 @@ def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(scraped_at, str):
         try:
             scraped_at = datetime.fromisoformat(scraped_at)
-        except ValueError:
+        except ValueError as e:
+            logger.warning(f"scraped_at パースエラー: '{scraped_at}' - {e}")
             pass
     
     # ハッシュタグとメンションの抽出

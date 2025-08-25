@@ -147,6 +147,8 @@ export interface MediaItem {
   mime_type: string
   size: number
   local_url?: string
+  position?: number // テキスト内での位置
+  order_type?: 'attachment' | 'link' // 種類（添付画像かリンク画像か）
 }
 
 export interface TweetResponse {
