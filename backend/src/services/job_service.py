@@ -192,17 +192,10 @@ class JobService:
             if final_logs:
                 update_operation["$push"]["logs"] = {"$each": final_logs}
 
-            result = self.collection.update_one({"job_id": job_id}, update_operation)
+            result = self.collection.update_one({"jo b_id": job_id}, update_operation)
 
             if result.matched_count > 0:
                 self.logger.info(f"ジョブを完了: {job_id}")
-
-                # 使用したアカウントの成功統計を更新
-                if job and job.scraper_account:
-                    from src.services.account_service import twitter_account_service
-
-                    twitter_account_service.mark_job_success(job.scraper_account)
-
                 return True
             else:
                 self.logger.warning(f"完了対象ジョブが見つかりません: {job_id}")
@@ -231,14 +224,6 @@ class JobService:
 
             if result.matched_count > 0:
                 self.logger.info(f"ジョブを失敗状態に更新: {job_id}")
-
-                # 使用したアカウントの失敗統計を更新
-                job = self.get_job(job_id)
-                if job and job.scraper_account:
-                    from src.services.account_service import twitter_account_service
-
-                    twitter_account_service.mark_job_failure(job.scraper_account)
-
                 return True
             else:
                 self.logger.warning(f"失敗対象ジョブが見つかりません: {job_id}")
