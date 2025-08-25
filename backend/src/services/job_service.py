@@ -200,6 +200,7 @@ class JobService:
                 # 使用したアカウントの成功統計を更新
                 if job and job.scraper_account:
                     from src.services.account_service import twitter_account_service
+
                     twitter_account_service.mark_job_success(job.scraper_account)
 
                 return True
@@ -235,6 +236,7 @@ class JobService:
                 job = self.get_job(job_id)
                 if job and job.scraper_account:
                     from src.services.account_service import twitter_account_service
+
                     twitter_account_service.mark_job_failure(job.scraper_account)
 
                 return True
