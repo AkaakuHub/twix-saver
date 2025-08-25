@@ -5,6 +5,7 @@ JSONLファイル処理とMongoDBへのデータインジェスト
 
 import json
 import os
+import asyncio
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Iterator, Any
@@ -17,6 +18,8 @@ from pymongo.errors import PyMongoError
 
 from src.config.settings import settings
 from src.utils.logger import setup_logger
+from src.utils.media_processor import media_processor
+from datetime import datetime, timezone, timedelta
 
 
 class JSONLProcessor:
@@ -171,6 +174,11 @@ class MongoDBManager:
         except PyMongoError as e:
             self.logger.error(f"インデックス作成エラー: {e}")
     
+    def get_jst_now(self):
+        """JST（日本標準時）の現在時刻を取得"""
+        jst = timezone(timedelta(hours=9))
+        return datetime.now(jst)
+    
     @property
     def is_connected(self) -> bool:
         """接続状態のチェック"""
@@ -210,16 +218,43 @@ class MongoDBManager:
                 if "rest_id" not in normalized_tweet:
                     normalized_tweet["rest_id"] = tweet_id
                 
-                # upsert操作を作成
+                # upsert操作を作成（メディアデータを適切にマージ）
                 filter_query = {"$or": [{"id_str": tweet_id}, {"rest_id": tweet_id}]}
                 
-                operations.append(
-                    UpdateOne(
-                        filter_query,
-                        {"$set": normalized_tweet},
-                        upsert=True
+                # downloaded_mediaがある場合は専用の更新ロジック
+                if "downloaded_media" in normalized_tweet:
+                    downloaded_media = normalized_tweet.pop("downloaded_media")
+                    
+                    # デバッグログ: メディア処理結果を記録
+                    media_types = {}
+                    for media in downloaded_media:
+                        media_type = media.get("type", "unknown")
+                        media_types[media_type] = media_types.get(media_type, 0) + 1
+                    
+                    if downloaded_media:
+                        self.logger.info(f"ツイート {tweet_id} のメディア保存: {media_types}")
+                    
+                    # normalized_tweetにdownloaded_mediaを再追加
+                    normalized_tweet["downloaded_media"] = downloaded_media
+                    
+                    update_doc = {"$set": normalized_tweet}
+                    
+                    operations.append(
+                        UpdateOne(
+                            filter_query,
+                            update_doc,
+                            upsert=True
+                        )
                     )
-                )
+                else:
+                    # 通常のツイートデータは既存の処理
+                    operations.append(
+                        UpdateOne(
+                            filter_query,
+                            {"$set": normalized_tweet},
+                            upsert=True
+                        )
+                    )
             
             if operations:
                 result = self.tweets_collection.bulk_write(operations, ordered=False)
@@ -337,7 +372,21 @@ class DataIngestService:
         self.processed_articles = 0
     
     def process_jsonl_files(self, directory: Path = None) -> Dict[str, Any]:
-        """指定ディレクトリ内のJSONLファイルを処理"""
+        """指定ディレクトリ内のJSONLファイルを処理（非同期メディア処理対応）"""
+        try:
+            # 既存のイベントループがあるかチェック
+            loop = asyncio.get_running_loop()
+            # 既存ループがある場合はタスクとして実行
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, self._async_process_jsonl_files(directory))
+                return future.result()
+        except RuntimeError:
+            # イベントループがない場合は通常通り実行
+            return asyncio.run(self._async_process_jsonl_files(directory))
+    
+    async def _async_process_jsonl_files(self, directory: Path = None) -> Dict[str, Any]:
+        """指定ディレクトリ内のJSONLファイルを非同期処理"""
         # 統計をリセット
         self.processed_files = 0
         self.processed_tweets = 0
@@ -359,9 +408,10 @@ class DataIngestService:
         self.logger.info(f"{len(jsonl_files)}個のJSONLファイルを処理開始")
         
         processed_files = []
-        for filepath in jsonl_files:
-            if self._process_single_file(filepath):
-                processed_files.append(filepath)
+        async with media_processor:
+            for filepath in jsonl_files:
+                if await self._async_process_single_file(filepath):
+                    processed_files.append(filepath)
         
         # DB挿入成功したファイルのみ削除
         if processed_files:
@@ -373,8 +423,8 @@ class DataIngestService:
             "processed_articles": self.processed_articles
         }
     
-    def _process_single_file(self, filepath: Path) -> bool:
-        """単一JSONLファイルの処理"""
+    async def _async_process_single_file(self, filepath: Path) -> bool:
+        """単一JSONLファイルの非同期処理（メディア処理付き）"""
         try:
             self.logger.info(f"ファイル処理開始: {filepath.name}")
             
@@ -387,6 +437,23 @@ class DataIngestService:
                     tweets.append(item)
                 elif self._is_article_data(item):
                     articles.append(item)
+            
+            # ツイートのメディア処理を実行
+            if tweets:
+                self.logger.info(f"ツイートのメディア処理を開始: {len(tweets)}件")
+                processed_tweets = []
+                
+                for tweet in tweets:
+                    try:
+                        # メディア処理を実行（db_managerを渡す）
+                        processed_tweet = await media_processor.process_tweet_media(tweet, self.mongodb)
+                        processed_tweets.append(processed_tweet)
+                    except Exception as e:
+                        self.logger.warning(f"ツイート {tweet.get('id_str', 'unknown')} のメディア処理エラー: {e}")
+                        # エラーでも元のツイートは保存
+                        processed_tweets.append(tweet)
+                
+                tweets = processed_tweets
             
             # MongoDBに挿入
             success = True
@@ -416,6 +483,15 @@ class DataIngestService:
         except Exception as e:
             self.logger.error(f"ファイル処理エラー ({filepath}): {e}")
             return False
+
+    def _process_single_file(self, filepath: Path) -> bool:
+        """単一JSONLファイルの処理（非同期版のラッパー）"""
+        return asyncio.run(self._async_process_single_file_wrapper(filepath))
+    
+    async def _async_process_single_file_wrapper(self, filepath: Path) -> bool:
+        """単一ファイル処理の非同期ラッパー"""
+        async with media_processor:
+            return await self._async_process_single_file(filepath)
     
     def _is_tweet_data(self, item: Dict) -> bool:
         """ツイートデータかどうかを判定"""

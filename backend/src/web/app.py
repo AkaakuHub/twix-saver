@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 
-from src.web.routers import users, jobs, tweets, settings, accounts
+from src.web.routers import users, jobs, tweets, settings, accounts, media
 from src.web.models import DashboardStats, SuccessResponse
 from src.services.user_service import user_service
 from src.services.job_service import job_service
@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     initialize_settings()
     logger.info("DB連携設定システムを初期化しました")
     
-    # WebSocket機能を削除しました
+    # WebSocket機能は削除済み
     
     logger.info("WebUI サーバーが正常に起動しました")
     
@@ -75,6 +75,7 @@ app.include_router(jobs.router, prefix="/api")
 app.include_router(tweets.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
 app.include_router(accounts.router, prefix="/api")
+app.include_router(media.router, prefix="/api")
 # WebSocketルーターを削除しました
 
 # ロガー設定
@@ -196,9 +197,6 @@ async def get_system_status():
             "scraping": {
                 "running_jobs": len(job_service.get_running_jobs()),
                 "active_users": len(user_service.get_active_users())
-            },
-            "websocket": {
-                "active_connections": len(websocket.manager.active_connections)
             }
         }
         

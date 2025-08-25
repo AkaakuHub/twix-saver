@@ -19,6 +19,34 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 logger = setup_logger("api.jobs")
 
 
+def _normalize_job_dict(job_dict: dict) -> dict:
+    """ジョブの辞書データを正規化する"""
+    # target_usernames の型チェック・修正
+    if isinstance(job_dict.get('target_usernames'), dict):
+        if 'target_usernames' in job_dict['target_usernames']:
+            job_dict['target_usernames'] = job_dict['target_usernames']['target_usernames']
+        else:
+            job_dict['target_usernames'] = list(job_dict['target_usernames'].values())
+    if not isinstance(job_dict.get('target_usernames'), list):
+        job_dict['target_usernames'] = [job_dict.get('target_usernames', '')]
+    
+    # stats の型変換
+    if hasattr(job_dict.get('stats'), '__dict__'):
+        job_dict['stats'] = vars(job_dict['stats'])
+    elif job_dict.get('stats') is None:
+        job_dict['stats'] = {
+            'tweets_collected': 0,
+            'articles_extracted': 0,
+            'media_downloaded': 0,
+            'errors_count': 0,
+            'processing_time_seconds': 0.0,
+            'pages_scrolled': 0,
+            'api_requests_made': 0
+        }
+    
+    return job_dict
+
+
 @router.get("/", response_model=List[ScrapingJobResponse])
 async def get_jobs(
     status: Optional[str] = Query(None, description="ジョブステータスでフィルタ"),
@@ -31,22 +59,7 @@ async def get_jobs(
         
         response_jobs = []
         for job in jobs:
-            job_dict = job.to_dict()
-            
-            # stats が ScrapingJobStats オブジェクトの場合は dict に変換
-            if hasattr(job_dict.get('stats'), '__dict__'):
-                job_dict['stats'] = vars(job_dict['stats'])
-            elif job_dict.get('stats') is None:
-                job_dict['stats'] = {
-                    'tweets_collected': 0,
-                    'articles_extracted': 0,
-                    'media_downloaded': 0,
-                    'errors_count': 0,
-                    'processing_time_seconds': 0.0,
-                    'pages_scrolled': 0,
-                    'api_requests_made': 0
-                }
-            
+            job_dict = _normalize_job_dict(job.to_dict())
             response_jobs.append(ScrapingJobResponse(**job_dict))
         
         logger.info(f"ジョブ一覧を取得: {len(response_jobs)}件")
@@ -65,22 +78,7 @@ async def get_recent_jobs(hours: int = Query(24, ge=1, le=168)):
         
         response_jobs = []
         for job in jobs:
-            job_dict = job.to_dict()
-            
-            # stats の型変換
-            if hasattr(job_dict.get('stats'), '__dict__'):
-                job_dict['stats'] = vars(job_dict['stats'])
-            elif job_dict.get('stats') is None:
-                job_dict['stats'] = {
-                    'tweets_collected': 0,
-                    'articles_extracted': 0,
-                    'media_downloaded': 0,
-                    'errors_count': 0,
-                    'processing_time_seconds': 0.0,
-                    'pages_scrolled': 0,
-                    'api_requests_made': 0
-                }
-            
+            job_dict = _normalize_job_dict(job.to_dict())
             response_jobs.append(ScrapingJobResponse(**job_dict))
         
         logger.info(f"最近{hours}時間のジョブを取得: {len(response_jobs)}件")
@@ -99,22 +97,7 @@ async def get_running_jobs():
         
         response_jobs = []
         for job in jobs:
-            job_dict = job.to_dict()
-            
-            # stats の型変換
-            if hasattr(job_dict.get('stats'), '__dict__'):
-                job_dict['stats'] = vars(job_dict['stats'])
-            elif job_dict.get('stats') is None:
-                job_dict['stats'] = {
-                    'tweets_collected': 0,
-                    'articles_extracted': 0,
-                    'media_downloaded': 0,
-                    'errors_count': 0,
-                    'processing_time_seconds': 0.0,
-                    'pages_scrolled': 0,
-                    'api_requests_made': 0
-                }
-            
+            job_dict = _normalize_job_dict(job.to_dict())
             response_jobs.append(ScrapingJobResponse(**job_dict))
         
         logger.info(f"実行中のジョブを取得: {len(response_jobs)}件")
@@ -133,22 +116,7 @@ async def get_active_jobs():
         
         response_jobs = []
         for job in jobs:
-            job_dict = job.to_dict()
-            
-            # stats の型変換
-            if hasattr(job_dict.get('stats'), '__dict__'):
-                job_dict['stats'] = vars(job_dict['stats'])
-            elif job_dict.get('stats') is None:
-                job_dict['stats'] = {
-                    'tweets_collected': 0,
-                    'articles_extracted': 0,
-                    'media_downloaded': 0,
-                    'errors_count': 0,
-                    'processing_time_seconds': 0.0,
-                    'pages_scrolled': 0,
-                    'api_requests_made': 0
-                }
-            
+            job_dict = _normalize_job_dict(job.to_dict())
             response_jobs.append(ScrapingJobResponse(**job_dict))
         
         logger.info(f"アクティブジョブを取得: {len(response_jobs)}件")
@@ -210,22 +178,7 @@ async def get_job(job_id: str):
         if not job:
             raise HTTPException(status_code=404, detail=f"ジョブが見つかりません: {job_id}")
         
-        job_dict = job.to_dict()
-        
-        # stats の型変換
-        if hasattr(job_dict.get('stats'), '__dict__'):
-            job_dict['stats'] = vars(job_dict['stats'])
-        elif job_dict.get('stats') is None:
-            job_dict['stats'] = {
-                'tweets_collected': 0,
-                'articles_extracted': 0,
-                'media_downloaded': 0,
-                'errors_count': 0,
-                'processing_time_seconds': 0.0,
-                'pages_scrolled': 0,
-                'api_requests_made': 0
-            }
-        
+        job_dict = _normalize_job_dict(job.to_dict())
         return ScrapingJobResponse(**job_dict)
         
     except HTTPException:
@@ -611,6 +564,31 @@ async def get_job_statistics(days: int = Query(30, ge=1, le=365)):
     except Exception as e:
         logger.error(f"ジョブ統計取得エラー: {e}")
         raise HTTPException(status_code=500, detail=f"ジョブ統計取得に失敗しました: {str(e)}")
+
+
+@router.get("/{job_id}/logs", response_model=dict)
+async def get_job_logs(job_id: str, last_timestamp: Optional[str] = Query(None)):
+    """ジョブの実行ログを取得（リアルタイム表示用）"""
+    try:
+        job = job_service.get_job(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail=f"ジョブが見つかりません: {job_id}")
+        
+        logs = job_service.get_job_logs(job_id, last_timestamp)
+        
+        return {
+            "job_id": job_id,
+            "logs": logs.get("logs", []),
+            "last_timestamp": logs.get("last_timestamp"),
+            "status": job.status,
+            "has_more": logs.get("has_more", False)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"ジョブログ取得エラー ({job_id}): {e}")
+        raise HTTPException(status_code=500, detail=f"ジョブログ取得に失敗しました: {str(e)}")
 
 
 @router.delete("/cleanup", response_model=SuccessResponse)

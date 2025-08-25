@@ -311,6 +311,55 @@ class JobService:
             self.logger.error(f"ジョブログ追加エラー ({job_id}): {e}")
             return False
     
+    def get_job_logs(self, job_id: str, last_timestamp: Optional[str] = None) -> Dict[str, Any]:
+        """ジョブのログを取得（リアルタイム表示用）"""
+        try:
+            job_doc = self.collection.find_one(
+                {"job_id": job_id}, 
+                {"logs": 1, "status": 1}
+            )
+            
+            if not job_doc:
+                return {"logs": [], "last_timestamp": None, "has_more": False}
+            
+            logs = job_doc.get("logs", [])
+            
+            # タイムスタンプでフィルタリング
+            if last_timestamp:
+                try:
+                    # ログの形式: [HH:MM:SS] メッセージ
+                    filtered_logs = []
+                    for log in logs:
+                        if log.startswith('[') and ']' in log:
+                            timestamp_part = log.split(']')[0][1:]  # [HH:MM:SS] から HH:MM:SS を抽出
+                            if timestamp_part > last_timestamp:
+                                filtered_logs.append(log)
+                        else:
+                            # タイムスタンプがない場合は含める
+                            filtered_logs.append(log)
+                    logs = filtered_logs
+                except:
+                    # エラーの場合はすべてのログを返す
+                    pass
+            
+            # 最新のタイムスタンプを取得
+            latest_timestamp = None
+            if logs:
+                for log in reversed(logs):  # 最新から検索
+                    if log.startswith('[') and ']' in log:
+                        latest_timestamp = log.split(']')[0][1:]
+                        break
+            
+            return {
+                "logs": logs,
+                "last_timestamp": latest_timestamp,
+                "has_more": len(logs) > 0
+            }
+            
+        except PyMongoError as e:
+            self.logger.error(f"ジョブログ取得エラー ({job_id}): {e}")
+            return {"logs": [], "last_timestamp": None, "has_more": False}
+    
     def update_job_stats(
         self,
         job_id: str,

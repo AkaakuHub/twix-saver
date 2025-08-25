@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import {
@@ -7,10 +7,12 @@ import {
   ChatBubbleOvalLeftIcon,
   ArrowTopRightOnSquareIcon,
   PhotoIcon,
-  PlayIcon,
   DocumentTextIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  TrashIcon,
+  ArrowPathIcon,
+  EllipsisHorizontalIcon,
 } from '@heroicons/react/24/outline'
 import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
@@ -26,6 +28,7 @@ interface Tweet {
     profile_image_url?: string
   }
   created_at: string
+  scraped_at?: string
   public_metrics: {
     like_count: number
     retweet_count: number
@@ -38,6 +41,14 @@ interface Tweet {
     preview_image_url?: string
     width?: number
     height?: number
+  }>
+  downloaded_media?: Array<{
+    media_id: string
+    original_url: string
+    type: 'photo' | 'linked_image'
+    mime_type: string
+    size: number
+    local_url?: string
   }>
   extracted_articles?: Array<{
     title: string
@@ -61,22 +72,54 @@ interface TweetCardProps {
   tweet: Tweet
   expanded?: boolean
   onExpand?: (tweetId: string) => void
+  onDelete?: (tweetId: string) => void
+  onRefreshUser?: (username: string) => void
   className?: string
+  showManagementActions?: boolean
 }
 
 export const TweetCard = ({
   tweet,
   expanded = false,
   onExpand,
+  onDelete,
+  onRefreshUser,
   className = '',
+  showManagementActions = false,
 }: TweetCardProps) => {
   const [isExpanded, setIsExpanded] = useState(expanded)
+  const [showActions, setShowActions] = useState(false)
+  const [showLinkedImages, setShowLinkedImages] = useState(false)
+  const actionsRef = useRef<HTMLDivElement>(null)
 
   const toggleExpanded = () => {
     const newExpanded = !isExpanded
     setIsExpanded(newExpanded)
     onExpand?.(tweet.id)
   }
+
+  const handleDelete = () => {
+    if (confirm('このツイートを削除しますか？関連するメディアファイルも削除されます。')) {
+      onDelete?.(tweet.id)
+    }
+  }
+
+  const handleRefreshUser = () => {
+    onRefreshUser?.(tweet.author.username)
+    setShowActions(false)
+  }
+
+  // 外部クリック時にアクションメニューを閉じる
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsRef.current && !actionsRef.current.contains(event.target as Node)) {
+        setShowActions(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
@@ -113,9 +156,24 @@ export const TweetCard = ({
     return <div dangerouslySetInnerHTML={{ __html: formattedText }} />
   }
 
-  const maxVisibleMedia = isExpanded ? undefined : 4
-  const visibleMedia = tweet.media?.slice(0, maxVisibleMedia) || []
-  const hasMoreMedia = tweet.media && tweet.media.length > (maxVisibleMedia || 0)
+  // ダウンロード済みメディアの処理
+  const getMediaUrl = (media: { local_url?: string; media_id?: string }) => {
+    // APIレスポンスのlocal_urlを使用（推奨）
+    if (media.local_url) {
+      return `http://localhost:8000${media.local_url}`
+    }
+    // フォールバック：media_idから構築
+    return `http://localhost:8000/api/tweets/media/${media.media_id}`
+  }
+
+  // 添付画像（Twitter画像）を取得
+  const attachedImages = tweet.downloaded_media?.filter(m => m.type === 'photo') || []
+  // リンク先画像を取得
+  const linkedImages = tweet.downloaded_media?.filter(m => m.type === 'linked_image') || []
+
+  // 表示するメディアを決定（添付画像のみ、リンク先画像は別途管理）
+  const attachedVisibleMedia = attachedImages.slice(0, isExpanded ? undefined : 4)
+  const hasMoreAttachedMedia = attachedImages.length > 4 && !isExpanded
 
   const maxVisibleArticles = isExpanded ? undefined : 2
   const visibleArticles = tweet.extracted_articles?.slice(0, maxVisibleArticles) || []
@@ -148,10 +206,10 @@ export const TweetCard = ({
 
           <div className="flex items-center space-x-2">
             {/* コンテンツタイプバッジ */}
-            {tweet.media && tweet.media.length > 0 && (
+            {(attachedImages.length > 0 || linkedImages.length > 0) && (
               <Badge variant="info" size="sm">
                 <PhotoIcon className="w-3 h-3 mr-1" />
-                メディア {tweet.media.length}
+                メディア {attachedImages.length + linkedImages.length}
               </Badge>
             )}
 
@@ -160,6 +218,34 @@ export const TweetCard = ({
                 <DocumentTextIcon className="w-3 h-3 mr-1" />
                 記事 {tweet.extracted_articles.length}
               </Badge>
+            )}
+
+            {showManagementActions && (
+              <div className="relative" ref={actionsRef}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowActions(!showActions)}
+                  icon={<EllipsisHorizontalIcon className="w-4 h-4" />}
+                />
+                {showActions && (
+                  <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
+                    <button
+                      onClick={handleRefreshUser}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                    >
+                      <ArrowPathIcon className="w-4 h-4 mr-2" />@{tweet.author.username} を再取得
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
+                    >
+                      <TrashIcon className="w-4 h-4 mr-2" />
+                      このツイートを削除
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             <Button
@@ -183,50 +269,110 @@ export const TweetCard = ({
         </div>
 
         {/* メディア表示 */}
-        {visibleMedia.length > 0 && (
+        {(attachedImages.length > 0 || linkedImages.length > 0) && (
           <div className="mb-4">
-            <div
-              className={clsx(
-                'grid gap-3 rounded-lg overflow-hidden',
-                visibleMedia.length === 1
-                  ? 'grid-cols-1'
-                  : visibleMedia.length === 2
-                    ? 'grid-cols-2'
-                    : 'grid-cols-2 md:grid-cols-3'
-              )}
-            >
-              {visibleMedia.map((media, index) => (
-                <div
-                  key={index}
-                  className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                  onClick={() => {}}
-                >
-                  <img
-                    src={media.preview_image_url || media.url}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                  {media.type === 'video' && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-                      <PlayIcon className="w-8 h-8 text-white" />
-                    </div>
-                  )}
-                  {media.type === 'gif' && (
-                    <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-1.5 py-0.5 rounded">
-                      GIF
-                    </div>
-                  )}
+            {/* 添付画像（Twitter画像）*/}
+            {attachedImages.length > 0 && (
+              <div className="mb-3">
+                <div className="text-sm text-gray-600 mb-2 flex items-center">
+                  <PhotoIcon className="w-4 h-4 mr-1" />
+                  添付画像 ({attachedImages.length}件)
                 </div>
-              ))}
-            </div>
+                <div
+                  className={clsx(
+                    'grid gap-3 rounded-lg overflow-hidden',
+                    attachedImages.length === 1
+                      ? 'grid-cols-1'
+                      : attachedImages.length === 2
+                        ? 'grid-cols-2'
+                        : 'grid-cols-2 md:grid-cols-3'
+                  )}
+                >
+                  {attachedVisibleMedia.map((media, index) => (
+                    <div
+                      key={`attached-${index}`}
+                      className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                      onClick={() => window.open(getMediaUrl(media), '_blank')}
+                    >
+                      <img
+                        src={getMediaUrl(media)}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute bottom-1 right-1 bg-black bg-opacity-70 text-white text-xs px-1.5 py-0.5 rounded">
+                        {(media.size / 1024).toFixed(0)}KB
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-            {hasMoreMedia && (
-              <button
-                onClick={() => setIsExpanded(true)}
-                className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-              >
-                他 {tweet.media!.length - visibleMedia.length} 件のメディアを表示
-              </button>
+                {hasMoreAttachedMedia && (
+                  <button
+                    onClick={() => setIsExpanded(true)}
+                    className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    他 {attachedImages.length - attachedVisibleMedia.length} 件の添付画像を表示
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* リンク先画像（折りたたみ式） */}
+            {linkedImages.length > 0 && (
+              <div className="mb-3">
+                <button
+                  onClick={() => setShowLinkedImages(!showLinkedImages)}
+                  className="w-full text-left text-sm text-gray-600 mb-2 flex items-center justify-between bg-gray-50 hover:bg-gray-100 p-3 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center">
+                    <ArrowTopRightOnSquareIcon className="w-4 h-4 mr-1" />
+                    リンク先画像 ({linkedImages.length}件)
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-xs mr-2">{showLinkedImages ? '非表示' : '表示'}</span>
+                    {showLinkedImages ? (
+                      <ChevronUpIcon className="w-4 h-4" />
+                    ) : (
+                      <ChevronDownIcon className="w-4 h-4" />
+                    )}
+                  </div>
+                </button>
+
+                {showLinkedImages && (
+                  <div
+                    className={clsx(
+                      'grid gap-3 rounded-lg overflow-hidden animate-in slide-in-from-top-2 duration-200',
+                      linkedImages.length === 1
+                        ? 'grid-cols-1'
+                        : linkedImages.length === 2
+                          ? 'grid-cols-2'
+                          : 'grid-cols-2 md:grid-cols-3'
+                    )}
+                  >
+                    {linkedImages.map((media, index) => (
+                      <div
+                        key={`linked-${index}`}
+                        className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                        onClick={() => window.open(media.original_url, '_blank')}
+                      >
+                        <img
+                          src={getMediaUrl(media)}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        <div className="absolute bottom-1 right-1 bg-black bg-opacity-70 text-white text-xs px-1.5 py-0.5 rounded">
+                          {(media.size / 1024).toFixed(0)}KB
+                        </div>
+                        <div className="absolute top-1 right-1 bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded">
+                          リンク
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -303,8 +449,13 @@ export const TweetCard = ({
             </div>
           </div>
 
-          <div className="text-sm text-gray-500">
-            総エンゲージメント: {formatNumber(getTotalEngagement())}
+          <div className="text-xs text-gray-500 text-right">
+            <div>総エンゲージメント: {formatNumber(getTotalEngagement())}</div>
+            {tweet.scraped_at && (
+              <div className="mt-1">
+                {format(new Date(tweet.scraped_at), 'M月d日 H時', { locale: ja })}時点
+              </div>
+            )}
           </div>
         </div>
       </div>

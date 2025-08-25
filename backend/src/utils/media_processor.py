@@ -1,0 +1,208 @@
+"""
+統合メディア処理システム
+ツイート添付画像とリンク先画像を統一的に処理
+"""
+
+import uuid
+import base64
+import asyncio
+import aiohttp
+import mimetypes
+from typing import Dict, List, Optional, Tuple, Any
+from urllib.parse import urlparse, urljoin
+from pathlib import Path
+
+from src.utils.logger import setup_logger
+
+
+class MediaProcessor:
+    """メディア処理の統合クラス"""
+    
+    def __init__(self):
+        self.logger = setup_logger("media_processor")
+        self.session = None
+    
+    async def __aenter__(self):
+        """非同期コンテキストマネージャー開始"""
+        timeout = aiohttp.ClientTimeout(total=30, connect=10)
+        self.session = aiohttp.ClientSession(
+            timeout=timeout,
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'
+            }
+        )
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """非同期コンテキストマネージャー終了"""
+        if self.session:
+            await self.session.close()
+    
+    def is_image_url(self, url: str) -> bool:
+        """URLが画像ファイルを指しているかチェック"""
+        try:
+            parsed = urlparse(url)
+            path = parsed.path.lower()
+            image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'}
+            return any(path.endswith(ext) for ext in image_extensions)
+        except:
+            return False
+    
+    async def download_image(self, url: str) -> Optional[Tuple[bytes, str]]:
+        """画像をダウンロードして (バイナリデータ, MIMEタイプ) を返す"""
+        try:
+            if not self.session:
+                raise RuntimeError("セッションが初期化されていません")
+            
+            self.logger.debug(f"画像ダウンロード開始: {url}")
+            
+            async with self.session.get(url) as response:
+                if response.status != 200:
+                    self.logger.warning(f"画像ダウンロード失敗 (HTTP {response.status}): {url}")
+                    return None
+                
+                content = await response.read()
+                
+                # MIMEタイプを取得
+                content_type = response.headers.get('content-type', '')
+                if not content_type.startswith('image/'):
+                    # URLから推測
+                    mime_type, _ = mimetypes.guess_type(url)
+                    if not mime_type or not mime_type.startswith('image/'):
+                        mime_type = 'image/jpeg'  # デフォルト
+                else:
+                    mime_type = content_type.split(';')[0]  # パラメータを除去
+                
+                # サイズチェック（10MBまで）
+                if len(content) > 10 * 1024 * 1024:
+                    self.logger.warning(f"画像サイズが大きすぎます ({len(content)} bytes): {url}")
+                    return None
+                
+                self.logger.debug(f"画像ダウンロード完了: {url} ({len(content)} bytes, {mime_type})")
+                return content, mime_type
+                
+        except asyncio.TimeoutError:
+            self.logger.warning(f"画像ダウンロードタイムアウト: {url}")
+        except Exception as e:
+            self.logger.warning(f"画像ダウンロードエラー: {url} - {e}")
+        
+        return None
+    
+    def save_image_to_db(self, image_data: bytes, mime_type: str, db_manager) -> str:
+        """画像をBase64エンコードしてDBに保存、メディアIDを返す"""
+        try:
+            media_id = str(uuid.uuid4())
+            base64_data = base64.b64encode(image_data).decode('utf-8')
+            
+            media_doc = {
+                "_id": media_id,
+                "data": base64_data,
+                "content_type": mime_type,
+                "size": len(image_data),
+                "created_at": db_manager.get_jst_now()
+            }
+            
+            db_manager.db.media_files.insert_one(media_doc)
+            self.logger.debug(f"画像をDBに保存: {media_id} ({len(image_data)} bytes, {mime_type})")
+            
+            return media_id
+            
+        except Exception as e:
+            self.logger.error(f"画像DB保存エラー: {e}")
+            return None
+    
+    async def process_tweet_attachments(self, tweet: Dict, db_manager) -> List[Dict]:
+        """ツイート添付画像を処理"""
+        media_items = []
+        processed_urls = set()  # 重複チェック用
+        
+        try:
+            # extended_entities.media を優先、なければ entities.media を使用
+            media_sources = []
+            
+            if 'legacy' in tweet:
+                # extended_entities が存在する場合はそれを優先
+                if 'extended_entities' in tweet['legacy'] and 'media' in tweet['legacy']['extended_entities']:
+                    media_sources = tweet['legacy']['extended_entities']['media']
+                # extended_entities がない場合のみ entities.media を使用
+                elif 'entities' in tweet['legacy'] and 'media' in tweet['legacy']['entities']:
+                    media_sources = tweet['legacy']['entities']['media']
+            
+            for media in media_sources:
+                if media.get('type') == 'photo':
+                    media_url = media.get('media_url_https') or media.get('media_url')
+                    if media_url and media_url not in processed_urls:
+                        processed_urls.add(media_url)
+                        result = await self.download_image(media_url)
+                        if result:
+                            image_data, mime_type = result
+                            media_id = self.save_image_to_db(image_data, mime_type, db_manager)
+                            
+                            if media_id:
+                                media_items.append({
+                                    'media_id': media_id,
+                                    'original_url': media_url,
+                                    'type': 'photo',
+                                    'mime_type': mime_type,
+                                    'size': len(image_data)
+                                })
+            
+        except Exception as e:
+            self.logger.error(f"ツイート添付画像処理エラー: {e}")
+        
+        return media_items
+    
+    async def process_tweet_link_images(self, tweet: Dict, db_manager) -> List[Dict]:
+        """ツイート内リンクの画像を処理"""
+        image_items = []
+        
+        try:
+            # legacy.entities.urls から画像URLを抽出
+            if 'legacy' in tweet and 'entities' in tweet['legacy'] and 'urls' in tweet['legacy']['entities']:
+                for url_entity in tweet['legacy']['entities']['urls']:
+                    expanded_url = url_entity.get('expanded_url')
+                    if expanded_url and self.is_image_url(expanded_url):
+                        result = await self.download_image(expanded_url)
+                        if result:
+                            image_data, mime_type = result
+                            media_id = self.save_image_to_db(image_data, mime_type, db_manager)
+                            
+                            if media_id:
+                                image_items.append({
+                                    'media_id': media_id,
+                                    'original_url': expanded_url,
+                                    'type': 'linked_image',
+                                    'mime_type': mime_type,
+                                    'size': len(image_data)
+                                })
+                        
+        except Exception as e:
+            self.logger.error(f"リンク先画像処理エラー: {e}")
+        
+        return image_items
+    
+    async def process_tweet_media(self, tweet: Dict, db_manager) -> Dict:
+        """ツイートのすべてのメディア（添付画像+リンク先画像）を処理"""
+        try:
+            # 添付画像を処理
+            attachment_media = await self.process_tweet_attachments(tweet, db_manager)
+            
+            # リンク先画像を処理
+            linked_images = await self.process_tweet_link_images(tweet, db_manager)
+            
+            # 統合
+            all_media = attachment_media + linked_images
+            
+            if all_media:
+                # ツイートにdownloaded_mediaフィールドを追加
+                tweet['downloaded_media'] = all_media
+                self.logger.info(f"ツイート {tweet.get('id_str', 'unknown')} のメディア処理完了: {len(all_media)}件")
+            
+        except Exception as e:
+            self.logger.error(f"ツイートメディア処理エラー: {e}")
+        
+        return tweet
+
+
+# グローバルインスタンス
+media_processor = MediaProcessor()

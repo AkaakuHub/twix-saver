@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react'
-import { useTweets } from '../../hooks/useTweets'
+import { useTweets, useTweetManagement } from '../../hooks/useTweets'
 import { Card } from '../ui/Card'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { TweetSearch, TweetFilters } from './TweetSearch'
 import { TweetCard } from './TweetCard'
-import { ViewColumnsIcon, ListBulletIcon, ArrowUpIcon } from '@heroicons/react/24/outline'
+import {
+  ViewColumnsIcon,
+  ListBulletIcon,
+  ArrowUpIcon,
+  CogIcon,
+  ArrowPathIcon,
+} from '@heroicons/react/24/outline'
 import { clsx } from 'clsx'
 
 export const TweetList = () => {
@@ -18,6 +24,7 @@ export const TweetList = () => {
   const [viewMode, setViewMode] = useState<'card' | 'compact'>('card')
   const [expandedTweets, setExpandedTweets] = useState<Set<string>>(new Set())
   const [showScrollTop, setShowScrollTop] = useState(false)
+  const [showManagementMode, setShowManagementMode] = useState(false)
 
   const { tweets, isLoading, total, error, hasMore, loadMore } = useTweets({
     search: searchFilters.query,
@@ -33,6 +40,8 @@ export const TweetList = () => {
     page: 1,
     page_size: 20,
   })
+
+  const { deleteTweet, refreshUserTweets, refreshAllTweets, isRefreshing } = useTweetManagement()
 
   // スクロール検出
   useEffect(() => {
@@ -91,8 +100,29 @@ export const TweetList = () => {
           </p>
         </div>
 
-        {/* 表示モード切替 */}
+        {/* 表示モード切替・管理機能 */}
         <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refreshAllTweets()}
+            loading={isRefreshing}
+            icon={<ArrowPathIcon className="w-4 h-4" />}
+          >
+            全再取得
+          </Button>
+
+          <Button
+            variant={showManagementMode ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setShowManagementMode(!showManagementMode)}
+            icon={<CogIcon className="w-4 h-4" />}
+          >
+            管理
+          </Button>
+
+          <div className="border-l border-gray-200 h-6 mx-2" />
+
           <Button
             variant={viewMode === 'card' ? 'primary' : 'outline'}
             size="sm"
@@ -142,27 +172,15 @@ export const TweetList = () => {
           {tweets.map(tweet =>
             viewMode === 'card' ? (
               <TweetCard
-                key={tweet.id_str}
+                key={tweet.id}
                 tweet={{
-                  id: tweet.id_str,
-                  text: tweet.content,
-                  author: {
-                    username: tweet.author_username,
-                    display_name: tweet.author_display_name || tweet.author_username,
-                    profile_image_url: undefined,
-                  },
+                  id: tweet.id,
+                  text: tweet.text,
+                  author: tweet.author,
                   created_at: tweet.created_at || '',
-                  public_metrics: {
-                    like_count: tweet.like_count || 0,
-                    retweet_count: tweet.retweet_count || 0,
-                    reply_count: tweet.reply_count || 0,
-                    quote_count: 0,
-                  },
-                  media: tweet.downloaded_media?.map((media: Record<string, unknown>) => ({
-                    type: 'photo' as const,
-                    url: (media.url as string) || '',
-                    preview_image_url: (media.url as string) || '',
-                  })),
+                  scraped_at: tweet.scraped_at || undefined,
+                  public_metrics: tweet.public_metrics,
+                  downloaded_media: tweet.downloaded_media, // ✅ downloaded_mediaを直接渡す
                   extracted_articles: tweet.extracted_articles?.map(
                     (article: Record<string, unknown>) => ({
                       title: (article.title as string) || '',
@@ -181,16 +199,19 @@ export const TweetList = () => {
                       }>
                     | undefined,
                 }}
-                expanded={expandedTweets.has(tweet.id_str)}
+                expanded={expandedTweets.has(tweet.id.toString())}
                 onExpand={handleTweetExpand}
+                onDelete={deleteTweet}
+                onRefreshUser={refreshUserTweets}
+                showManagementActions={showManagementMode}
               />
             ) : (
-              <Card key={tweet.id_str} className="p-4 hover:bg-gray-50 transition-colors">
+              <Card key={tweet.id} className="p-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4 min-w-0 flex-1">
                     <div className="flex items-center space-x-2">
                       <span className="font-medium text-blue-600 text-sm">
-                        @{tweet.author_username}
+                        @{tweet.author.username}
                       </span>
                       <span className="text-gray-500 text-xs">
                         {tweet.created_at &&
@@ -200,11 +221,11 @@ export const TweetList = () => {
                           })}
                       </span>
                     </div>
-                    <div className="truncate text-sm text-gray-900 flex-1">{tweet.content}</div>
+                    <div className="truncate text-sm text-gray-900 flex-1">{tweet.text}</div>
                   </div>
                   <div className="flex items-center space-x-4 text-xs text-gray-500 ml-4">
-                    <span>❤️ {tweet.like_count || 0}</span>
-                    <span>🔄 {tweet.retweet_count || 0}</span>
+                    <span>❤️ {tweet.public_metrics.like_count || 0}</span>
+                    <span>🔄 {tweet.public_metrics.retweet_count || 0}</span>
                     {(tweet.downloaded_media?.length || 0) > 0 && (
                       <Badge variant="info" size="sm">
                         メディア

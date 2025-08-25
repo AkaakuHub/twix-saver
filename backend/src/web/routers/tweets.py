@@ -5,8 +5,11 @@ MongoDB からのツイートデータ取得と検索機能を提供
 
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import FileResponse
 from datetime import datetime, timedelta
 from pymongo.errors import PyMongoError
+import os
+import mimetypes
 
 from src.web.models import TweetSearchFilter, TweetResponse, PaginatedResponse
 from src.utils.data_manager import mongodb_manager
@@ -424,6 +427,263 @@ async def get_tweet(tweet_id: str):
         raise HTTPException(status_code=500, detail=f"ツイート詳細取得に失敗しました: {str(e)}")
 
 
+@router.get("/media/{media_id}")
+async def get_media_file(media_id: str):
+    """メディアファイルをDBから配信"""
+    try:
+        if not mongodb_manager.is_connected:
+            raise HTTPException(status_code=500, detail="データベース接続エラー")
+        
+        # MongoDBからメディアデータを取得
+        media_doc = mongodb_manager.db.media_files.find_one({"_id": media_id})
+        
+        if not media_doc:
+            raise HTTPException(status_code=404, detail="メディアファイルが見つかりません")
+        
+        # Base64データをデコード
+        import base64
+        from fastapi.responses import Response
+        
+        image_data = base64.b64decode(media_doc["data"])
+        content_type = media_doc.get("content_type", "image/jpeg")
+        
+        return Response(
+            content=image_data,
+            media_type=content_type,
+            headers={"Cache-Control": "public, max-age=86400"}  # 1日キャッシュ
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"メディアファイル配信エラー ({media_id}): {e}")
+        raise HTTPException(status_code=500, detail="メディアファイル配信に失敗しました")
+
+
+@router.delete("/{tweet_id}")
+async def delete_tweet(tweet_id: str):
+    """ツイートを削除"""
+    try:
+        if not mongodb_manager.is_connected:
+            raise HTTPException(status_code=500, detail="データベース接続エラー")
+        
+        # ツイートの存在確認
+        existing_tweet = mongodb_manager.tweets_collection.find_one({
+            "$or": [
+                {"id_str": tweet_id},
+                {"rest_id": tweet_id}
+            ]
+        })
+        
+        if not existing_tweet:
+            raise HTTPException(status_code=404, detail=f"ツイートが見つかりません: {tweet_id}")
+        
+        # 関連するメディアファイルも削除
+        downloaded_media = existing_tweet.get("downloaded_media", [])
+        media_ids_to_delete = []
+        
+        for media_item in downloaded_media:
+            if isinstance(media_item, dict) and "media_id" in media_item:
+                media_ids_to_delete.append(media_item["media_id"])
+        
+        # メディアファイルをDBから削除
+        if media_ids_to_delete:
+            mongodb_manager.db.media_files.delete_many({
+                "_id": {"$in": media_ids_to_delete}
+            })
+            logger.info(f"メディアファイルを削除: {len(media_ids_to_delete)}件")
+        
+        # ツイート本体を削除
+        result = mongodb_manager.tweets_collection.delete_one({
+            "$or": [
+                {"id_str": tweet_id},
+                {"rest_id": tweet_id}
+            ]
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="ツイートの削除に失敗しました")
+        
+        logger.info(f"ツイートを削除しました: {tweet_id}")
+        return {
+            "success": True,
+            "message": "ツイートを削除しました",
+            "tweet_id": tweet_id,
+            "media_files_deleted": len(media_ids_to_delete)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"ツイート削除エラー ({tweet_id}): {e}")
+        raise HTTPException(status_code=500, detail=f"ツイート削除に失敗しました: {str(e)}")
+
+
+@router.post("/refresh")
+async def refresh_all_tweets():
+    """すべてのツイートを再取得"""
+    try:
+        if not mongodb_manager.is_connected:
+            raise HTTPException(status_code=500, detail="データベース接続エラー")
+        
+        # アクティブなユーザー一覧を取得
+        from src.services.user_service import user_service
+        active_users = user_service.get_active_users()
+        
+        if not active_users:
+            raise HTTPException(status_code=400, detail="アクティブなユーザーがありません")
+        
+        # スクレイピングジョブを作成
+        from src.services.job_service import job_service
+        
+        job_id = job_service.create_job(
+            target_usernames=[user.username for user in active_users],
+            process_articles=True,
+            max_tweets=None,
+            scraper_account=None
+        )
+        
+        if not job_id:
+            raise HTTPException(status_code=500, detail="ジョブの作成に失敗しました")
+        
+        logger.info(f"全ツイート再取得ジョブを作成: {job_id}")
+        return {
+            "success": True,
+            "message": "ツイート再取得ジョブを開始しました",
+            "job_id": job_id,
+            "target_users": len(active_users)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"ツイート再取得エラー: {e}")
+        raise HTTPException(status_code=500, detail=f"ツイート再取得に失敗しました: {str(e)}")
+
+
+@router.post("/refresh/{username}")
+async def refresh_user_tweets(username: str):
+    """特定ユーザーのツイートを再取得"""
+    try:
+        if not mongodb_manager.is_connected:
+            raise HTTPException(status_code=500, detail="データベース接続エラー")
+        
+        # ユーザーの存在確認
+        from src.services.user_service import user_service
+        user = user_service.get_user(username)
+        
+        if not user:
+            raise HTTPException(status_code=404, detail=f"ユーザーが見つかりません: {username}")
+        
+        if not user.active:
+            raise HTTPException(status_code=400, detail=f"ユーザーが無効になっています: {username}")
+        
+        # スクレイピングジョブを作成
+        from src.services.job_service import job_service
+        
+        job_id = job_service.create_job(
+            target_usernames=[username],
+            process_articles=True,
+            max_tweets=None,
+            scraper_account=None
+        )
+        
+        if not job_id:
+            raise HTTPException(status_code=500, detail="ジョブの作成に失敗しました")
+        
+        logger.info(f"ユーザー '{username}' のツイート再取得ジョブを作成: {job_id}")
+        return {
+            "success": True,
+            "message": f"@{username} のツイート再取得ジョブを開始しました",
+            "job_id": job_id,
+            "username": username
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"ユーザーツイート再取得エラー ({username}): {e}")
+        raise HTTPException(status_code=500, detail=f"ユーザーツイート再取得に失敗しました: {str(e)}")
+
+
+@router.delete("/bulk")
+async def delete_tweets_bulk(request_body: Dict[str, List[str]]):
+    """複数ツイートの一括削除"""
+    try:
+        if not mongodb_manager.is_connected:
+            raise HTTPException(status_code=500, detail="データベース接続エラー")
+        
+        tweet_ids = request_body.get("tweet_ids", [])
+        if not tweet_ids:
+            raise HTTPException(status_code=400, detail="削除するツイートIDが指定されていません")
+        
+        deleted_count = 0
+        media_files_deleted = 0
+        errors = []
+        
+        for tweet_id in tweet_ids:
+            try:
+                # ツイートの存在確認
+                existing_tweet = mongodb_manager.tweets_collection.find_one({
+                    "$or": [
+                        {"id_str": tweet_id},
+                        {"rest_id": tweet_id}
+                    ]
+                })
+                
+                if not existing_tweet:
+                    errors.append(f"ツイートが見つかりません: {tweet_id}")
+                    continue
+                
+                # 関連するメディアファイルも削除
+                downloaded_media = existing_tweet.get("downloaded_media", [])
+                media_ids_to_delete = []
+                
+                for media_item in downloaded_media:
+                    if isinstance(media_item, dict) and "media_id" in media_item:
+                        media_ids_to_delete.append(media_item["media_id"])
+                
+                # メディアファイルをDBから削除
+                if media_ids_to_delete:
+                    media_result = mongodb_manager.db.media_files.delete_many({
+                        "_id": {"$in": media_ids_to_delete}
+                    })
+                    media_files_deleted += media_result.deleted_count
+                
+                # ツイート本体を削除
+                result = mongodb_manager.tweets_collection.delete_one({
+                    "$or": [
+                        {"id_str": tweet_id},
+                        {"rest_id": tweet_id}
+                    ]
+                })
+                
+                if result.deleted_count > 0:
+                    deleted_count += 1
+                else:
+                    errors.append(f"ツイートの削除に失敗: {tweet_id}")
+                    
+            except Exception as e:
+                errors.append(f"ツイート {tweet_id} の削除エラー: {str(e)}")
+                continue
+        
+        logger.info(f"一括削除完了: {deleted_count}件のツイート、{media_files_deleted}件のメディア")
+        
+        return {
+            "success": True,
+            "message": f"{deleted_count}件のツイートを削除しました",
+            "deleted_count": deleted_count,
+            "media_files_deleted": media_files_deleted,
+            "errors": errors
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"一括削除エラー: {e}")
+        raise HTTPException(status_code=500, detail=f"一括削除に失敗しました: {str(e)}")
+
+
 def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
     """MongoDBドキュメントをTweetResponseモデルに変換"""
     
@@ -508,6 +768,14 @@ def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
         if "user_mentions" in entities:
             mentions = [mention.get("screen_name", "") for mention in entities["user_mentions"]]
     
+    # ダウンロード済みメディアのURL変換
+    downloaded_media = doc.get("downloaded_media", [])
+    if downloaded_media:
+        for media_item in downloaded_media:
+            if isinstance(media_item, dict) and "media_id" in media_item:
+                # メディアIDからAPIエンドポイント経由のURLに変換
+                media_item["local_url"] = f"/api/tweets/media/{media_item['media_id']}"
+    
     return {
         "id_str": tweet_id,
         "content": content,
@@ -520,7 +788,7 @@ def _convert_tweet_document(doc: Dict[str, Any]) -> Dict[str, Any]:
         "like_count": engagement.get("like_count"),
         "reply_count": engagement.get("reply_count"),
         "extracted_articles": doc.get("extracted_articles"),
-        "downloaded_media": doc.get("downloaded_media"),
+        "downloaded_media": downloaded_media,
         "hashtags": hashtags if hashtags else None,
         "mentions": mentions if mentions else None
     }

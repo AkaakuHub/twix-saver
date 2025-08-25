@@ -1,5 +1,29 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import type { TweetResponse } from '../types/api'
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+
+import { useAppStore } from '../stores/appStore'
+
+interface RawTweet {
+  id_str?: string
+  id?: string
+  content?: string
+  like_count?: number
+  retweet_count?: number
+  reply_count?: number
+  author_username?: string
+  author_display_name?: string
+  downloaded_media?: Array<{
+    media_id: string
+    original_url: string
+    type: 'photo' | 'linked_image'
+    mime_type: string
+    size: number
+    local_url?: string
+  }>
+  created_at?: string
+  scraped_at?: string
+  extracted_articles?: Array<Record<string, unknown>>
+  [key: string]: unknown
+}
 
 const API_BASE = 'http://localhost:8000/api'
 
@@ -48,22 +72,65 @@ export const useTweets = (params: TweetSearchParams = {}) => {
 
           // 配列が直接返される場合と、オブジェクト内に配列がある場合に対応
           if (Array.isArray(result)) {
+            // APIレスポンスをフロントエンド形式にマッピング
+            const mappedTweets = result.map((tweet: RawTweet) => ({
+              ...tweet,
+              id: tweet.id_str || tweet.id || '',
+              public_metrics: {
+                like_count: tweet.like_count || 0,
+                retweet_count: tweet.retweet_count || 0,
+                reply_count: tweet.reply_count || 0,
+                quote_count: 0,
+              },
+              author: {
+                username: tweet.author_username || '',
+                display_name: tweet.author_display_name || '',
+              },
+              text: tweet.content || '',
+              created_at: tweet.created_at,
+              scraped_at: tweet.scraped_at,
+              downloaded_media: tweet.downloaded_media,
+              extracted_articles: tweet.extracted_articles,
+            }))
+
             return {
-              tweets: result as TweetResponse[],
-              total: result.length,
+              tweets: mappedTweets,
+              total: mappedTweets.length,
               page: pageParam as number,
               hasMore: false, // 単一ページの場合
             }
           } else {
             // オブジェクト形式の場合
             const objectResult = result as {
-              tweets?: TweetResponse[]
-              data?: TweetResponse[]
+              tweets?: RawTweet[]
+              data?: RawTweet[]
               total?: number
               has_more?: boolean
             }
+
+            const rawTweets = objectResult.tweets || objectResult.data || []
+            const mappedTweets = rawTweets.map((tweet: RawTweet) => ({
+              ...tweet,
+              id: tweet.id_str || tweet.id || '',
+              public_metrics: {
+                like_count: tweet.like_count || 0,
+                retweet_count: tweet.retweet_count || 0,
+                reply_count: tweet.reply_count || 0,
+                quote_count: 0,
+              },
+              author: {
+                username: tweet.author_username || '',
+                display_name: tweet.author_display_name || '',
+              },
+              text: tweet.content || '',
+              created_at: tweet.created_at,
+              scraped_at: tweet.scraped_at,
+              downloaded_media: tweet.downloaded_media,
+              extracted_articles: tweet.extracted_articles,
+            }))
+
             return {
-              tweets: objectResult.tweets || objectResult.data || [],
+              tweets: mappedTweets,
               total: objectResult.total || 0,
               page: pageParam as number,
               hasMore: objectResult.has_more || false,
@@ -131,4 +198,134 @@ export const useTweetStats = () => {
     staleTime: Infinity, // 手動更新のみ
     refetchOnWindowFocus: false,
   })
+}
+
+export const useTweetManagement = () => {
+  const { addNotification } = useAppStore()
+  const queryClient = useQueryClient()
+
+  // 単体ツイート削除
+  const deleteTweetMutation = useMutation({
+    mutationFn: async (tweetId: string): Promise<void> => {
+      const response = await fetch(`${API_BASE}/tweets/${tweetId}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'ツイートの削除に失敗しました')
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tweets'] })
+      queryClient.invalidateQueries({ queryKey: ['tweet-stats'] })
+      addNotification({
+        type: 'success',
+        title: 'ツイートを削除しました',
+      })
+    },
+    onError: (error: Error) => {
+      addNotification({
+        type: 'error',
+        title: 'ツイート削除エラー',
+        message: error.message,
+      })
+    },
+  })
+
+  // 一括削除
+  const deleteTweetsBulkMutation = useMutation({
+    mutationFn: async (tweetIds: string[]): Promise<void> => {
+      const response = await fetch(`${API_BASE}/tweets/bulk`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tweet_ids: tweetIds }),
+      })
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || '一括削除に失敗しました')
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tweets'] })
+      queryClient.invalidateQueries({ queryKey: ['tweet-stats'] })
+      addNotification({
+        type: 'success',
+        title: '選択したツイートを削除しました',
+      })
+    },
+    onError: (error: Error) => {
+      addNotification({
+        type: 'error',
+        title: '一括削除エラー',
+        message: error.message,
+      })
+    },
+  })
+
+  // 全ツイート再取得
+  const refreshAllTweetsMutation = useMutation({
+    mutationFn: async (): Promise<void> => {
+      const response = await fetch(`${API_BASE}/tweets/refresh`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'ツイート再取得に失敗しました')
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tweets'] })
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      addNotification({
+        type: 'success',
+        title: 'ツイート再取得ジョブを開始しました',
+      })
+    },
+    onError: (error: Error) => {
+      addNotification({
+        type: 'error',
+        title: 'ツイート再取得エラー',
+        message: error.message,
+      })
+    },
+  })
+
+  // ユーザー別ツイート再取得
+  const refreshUserTweetsMutation = useMutation({
+    mutationFn: async (username: string): Promise<void> => {
+      const response = await fetch(`${API_BASE}/tweets/refresh/${username}`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'ユーザーツイート再取得に失敗しました')
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tweets'] })
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      addNotification({
+        type: 'success',
+        title: 'ユーザーツイート再取得ジョブを開始しました',
+      })
+    },
+    onError: (error: Error) => {
+      addNotification({
+        type: 'error',
+        title: 'ユーザーツイート再取得エラー',
+        message: error.message,
+      })
+    },
+  })
+
+  return {
+    deleteTweet: deleteTweetMutation.mutate,
+    deleteTweetsBulk: deleteTweetsBulkMutation.mutate,
+    refreshAllTweets: refreshAllTweetsMutation.mutate,
+    refreshUserTweets: refreshUserTweetsMutation.mutate,
+    isDeleting: deleteTweetMutation.isPending,
+    isDeletingBulk: deleteTweetsBulkMutation.isPending,
+    isRefreshing: refreshAllTweetsMutation.isPending,
+    isRefreshingUser: refreshUserTweetsMutation.isPending,
+  }
 }

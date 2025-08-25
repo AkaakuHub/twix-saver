@@ -279,3 +279,56 @@ export const useJobStats = () => {
     refetchOnWindowFocus: false,
   })
 }
+
+export const useJobLogs = (jobId: string, lastTimestamp?: string) => {
+  return useQuery({
+    queryKey: ['job-logs', jobId, lastTimestamp],
+    queryFn: async () => {
+      try {
+        const params = lastTimestamp ? `?last_timestamp=${encodeURIComponent(lastTimestamp)}` : ''
+        const response = await fetch(`${API_BASE}/jobs/${jobId}/logs${params}`)
+        if (!response.ok) {
+          throw new Error('ジョブログの取得に失敗しました')
+        }
+        return response.json()
+      } catch (error) {
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          throw new Error(
+            'バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。'
+          )
+        }
+        throw error
+      }
+    },
+    enabled: !!jobId,
+    staleTime: 0, // リアルタイム更新のため常に最新データを取得
+    refetchInterval: 2000, // 2秒間隔で自動更新
+    refetchOnWindowFocus: false,
+  })
+}
+
+export const useJobDetail = (jobId: string) => {
+  return useQuery({
+    queryKey: ['job-detail', jobId],
+    queryFn: async (): Promise<ScrapingJobResponse> => {
+      try {
+        const response = await fetch(`${API_BASE}/jobs/${jobId}`)
+        if (!response.ok) {
+          throw new Error('ジョブ詳細の取得に失敗しました')
+        }
+        return response.json()
+      } catch (error) {
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          throw new Error(
+            'バックエンドサーバーに接続できません。サーバーが起動していることを確認してください。'
+          )
+        }
+        throw error
+      }
+    },
+    enabled: !!jobId,
+    staleTime: 0, // リアルタイム更新のため常に最新データを取得
+    refetchInterval: 2000, // 2秒間隔で自動更新（実行中の場合）
+    refetchOnWindowFocus: false,
+  })
+}
