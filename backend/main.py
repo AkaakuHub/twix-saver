@@ -394,7 +394,8 @@ def main():
     
     # ログレベル設定
     if args.log_level:
-        settings.log_level = args.log_level
+        import logging
+        logging.getLogger().setLevel(getattr(logging, args.log_level))
     
     # 統計表示
     if args.stats:

@@ -447,9 +447,12 @@ async def run_pending_jobs_now(background_tasks: BackgroundTasks):
 
 
 @router.put("/{job_id}/start", response_model=SuccessResponse)
-async def start_job(job_id: str):
+async def start_job(job_id: str, background_tasks: BackgroundTasks):
     """ジョブを開始"""
     try:
+        import subprocess
+        from pathlib import Path
+        
         job = job_service.get_job(job_id)
         if not job:
             raise HTTPException(status_code=404, detail=f"ジョブが見つかりません: {job_id}")
@@ -460,16 +463,34 @@ async def start_job(job_id: str):
                 detail=f"ジョブは開始できません。現在のステータス: {job.status}"
             )
         
-        success = job_service.start_job(job_id)
+# 現在のプロジェクトディレクトリを取得
+        backend_path = Path(__file__).parent.parent.parent.parent
+        venv_python = backend_path / "venv" / "bin" / "python"
+        main_script = backend_path / "main.py"
         
-        if success:
-            logger.info(f"ジョブを開始: {job_id}")
-            return SuccessResponse(
-                message=f"ジョブを開始しました",
-                data={"job_id": job_id, "status": "running"}
-            )
-        else:
-            raise HTTPException(status_code=400, detail="ジョブの開始に失敗しました")
+        # バックグラウンドで実際のスクレイピング処理を実行（ステータス変更も含む）
+        def run_scraping_job():
+            try:
+                subprocess.run(
+                    [str(venv_python), str(main_script), "--run-single-job", job_id],
+                    cwd=str(backend_path),
+                    check=True
+                )
+                logger.info(f"ジョブ {job_id} のスクレイピング処理が完了しました")
+            except subprocess.CalledProcessError as e:
+                logger.error(f"スクレイピング処理エラー: {e}")
+                job_service.fail_job(job_id, f"スクレイピング処理でエラーが発生しました: {e}")
+            except Exception as e:
+                logger.error(f"バックグラウンドスクレイピング実行エラー: {e}")
+                job_service.fail_job(job_id, f"予期しないエラーが発生しました: {e}")
+        
+        background_tasks.add_task(run_scraping_job)
+        
+        logger.info(f"ジョブ開始を要求: {job_id}")
+        return SuccessResponse(
+            message=f"ジョブの開始処理を開始しました",
+            data={"job_id": job_id, "status": "starting"}
+        )
         
     except HTTPException:
         raise

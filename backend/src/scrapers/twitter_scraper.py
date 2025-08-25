@@ -43,14 +43,21 @@ class TwitterScraper:
         self.chunk_size = 20  # 20件ごとに保存
         self.save_counter = 0
         self.total_saved = 0
+        self.current_target_user = None  # 現在のターゲットユーザー名
         
-        # ネットワーク傍受用のパターン
+        # ネットワーク傍受用のパターン (元の動作していたパターンを復元)
         self.tweet_patterns = [
             "TweetResultByRestId",
             "UserByRestId", 
             "SearchTimeline",
-            "HomeTimeline"
+            "UserTweets",  # ユーザーページ専用
+            "UserTweetsAndReplies",  # ユーザーページ専用
+            "UserMedia"   # ユーザーページ専用
         ]
+        
+        # 新規ツイート検知用
+        self.known_tweet_ids: Set[str] = set()  # 既知のツイートID
+        self.target_user_id: Optional[str] = None  # 監視対象ユーザーID
         
         # User-Agent ローテーション用
         self.current_user_agent = random.choice(settings.user_agents)
@@ -174,6 +181,18 @@ class TwitterScraper:
         
         # Twitter APIの応答をフィルタリング
         if any(pattern in url for pattern in self.tweet_patterns):
+            
+            # ターゲットユーザーが設定されている場合、現在のページURLを確認
+            if self.current_target_user:
+                try:
+                    current_url = self.page.url
+                    expected_url = f"https://x.com/{self.current_target_user}"
+                    if not current_url.startswith(expected_url):
+                        self.logger.debug(f"ターゲット外ページでのAPI応答をスキップ: {current_url} (期待: {expected_url})")
+                        return
+                except Exception as e:
+                    self.logger.debug(f"ページURL確認エラー: {e}")
+                    return
             try:
                 if response.status == 200:
                     content_type = response.headers.get("content-type", "")
@@ -189,9 +208,21 @@ class TwitterScraper:
             # ツイートデータの抽出
             tweets = self._extract_tweets_from_response(data)
             
+            target_tweets = 0  # ターゲットユーザーのツイート数
+            
             for tweet in tweets:
                 tweet_id = tweet.get("id_str") or tweet.get("rest_id")
                 if tweet_id and tweet_id not in self.tweet_ids_seen:
+                    
+                    # ターゲットユーザーのフィルタリング
+                    if self.current_target_user:
+                        tweet_username = self._extract_tweet_username(tweet)
+                        if tweet_username and tweet_username.lower() != self.current_target_user.lower():
+                            self.logger.debug(f"非対象ユーザーのツイートをスキップ: @{tweet_username} (ターゲット: @{self.current_target_user})")
+                            continue
+                        target_tweets += 1
+                        self.logger.debug(f"対象ツイートを収集: @{tweet_username} - {tweet_id}")
+                    
                     self.tweet_ids_seen.add(tweet_id)
                     
                     # タイムスタンプを追加
@@ -200,14 +231,15 @@ class TwitterScraper:
                     
                     self.collected_tweets.append(tweet)
                     
-                    self.logger.debug(f"新しいツイートを収集: {tweet_id}")
-                    
                     # チャンク保存チェック
                     if len(self.collected_tweets) >= self.chunk_size:
                         await self._save_chunk()
             
             if tweets:
-                self.logger.info(f"{len(tweets)}件のツイートを処理しました")
+                if self.current_target_user:
+                    self.logger.info(f"レスポンス処理完了 - 全体:{len(tweets)}件, @{self.current_target_user}のツイート:{target_tweets}件")
+                else:
+                    self.logger.info(f"{len(tweets)}件のツイートを処理しました")
                 
         except Exception as e:
             self.logger.error(f"Twitter応答処理エラー: {e}")
@@ -237,12 +269,62 @@ class TwitterScraper:
         extract_recursive(data)
         return tweets
     
+    def _extract_tweet_username(self, tweet: Dict) -> Optional[str]:
+        """ツイートからユーザー名を抽出"""
+        try:
+            # Twitter API v2 format
+            if "legacy" in tweet and "user" in tweet:
+                user_data = tweet["user"]
+                if "legacy" in user_data:
+                    return user_data["legacy"].get("screen_name")
+                return user_data.get("screen_name")
+            
+            # Twitter API v1.1 format  
+            if "user" in tweet:
+                return tweet["user"].get("screen_name")
+            
+            # Legacy format direct access
+            if "legacy" in tweet:
+                legacy = tweet["legacy"]
+                if "user" in legacy:
+                    return legacy["user"].get("screen_name")
+                # Core user data might be in legacy
+                user_mentions = legacy.get("entities", {}).get("user_mentions", [])
+                if user_mentions and len(user_mentions) == 1:
+                    return user_mentions[0].get("screen_name")
+            
+            # Alternative paths
+            if "screen_name" in tweet:
+                return tweet["screen_name"]
+                
+            return None
+            
+        except Exception as e:
+            self.logger.debug(f"ユーザー名抽出エラー: {e}")
+            return None
+    
     async def login(self) -> bool:
         """X.com へのログイン"""
         try:
             self.logger.info("X.com にログインしています...")
             self._log_to_job("X.com にログイン中...")
             
+            # まずホームページに移動してログイン状態を確認
+            await self.page.goto("https://x.com/home")
+            await self._random_delay(2, 3)
+            
+            # ログイン済みかチェック
+            try:
+                # ホームタイムラインが表示されているかチェック
+                if await self.page.is_visible('[data-testid="primaryColumn"]', timeout=10000):
+                    self.logger.info("既にログイン済みです")
+                    self._log_to_job("ログイン済み")
+                    return True
+            except Exception:
+                pass
+            
+            # ログインが必要な場合、ログインページに移動
+            self.logger.info("ログインが必要です")
             await self.page.goto("https://x.com/login")
             await self._random_delay(2, 4)
             
@@ -289,112 +371,76 @@ class TwitterScraper:
             self.logger.error(f"ログイン処理エラー: {e}")
             return False
     
-    async def scrape_user_timeline(self, username: str, max_tweets: Optional[int] = None) -> List[Dict]:
-        """指定ユーザーのタイムラインをスクレイピング"""
-        if max_tweets is None:
-            max_tweets = settings.scraping.max_tweets_per_session
+    async def sync_user_tweets(self, username: str) -> List[Dict]:
+        """指定ユーザーの新規ツイートのみを検知・同期"""
+        self.current_target_user = username
         
-        self.logger.info(f"@{username} のタイムラインをスクレイピング開始 (最大{max_tweets}件)")
-        self._log_to_job(f"@{username} のタイムライン取得開始 (最大{max_tweets}件)")
+        self.logger.info(f"@{username} の新規ツイート検知を開始")
+        self._log_to_job(f"@{username} の新規ツイート検知開始")
         
         try:
-            # ユーザーページに移動
-            await self.page.goto(f"https://x.com/{username}")
-            await self._random_delay(2, 4)
+            # 既知のツイートIDを事前に取得
+            await self._load_known_tweet_ids(username)
             
-            # 無限スクロール実行
-            await self._infinite_scroll(max_tweets)
+            # ユーザーページに移動（最新数件のみ確認）
+            target_url = f"https://x.com/{username}"
+            self.logger.info(f"ユーザーページ確認: {target_url}")
+            await self.page.goto(target_url)
+            await self._random_delay(1, 2)  # 短時間で済ます
             
-            buffer_count = len(self.collected_tweets)
-            self.logger.info(f"スクレイピング完了: チャンク保存{self.total_saved}件 + バッファ{buffer_count}件")
+            # 新規ツイート検知待機（最大10秒）
+            await self._detect_new_tweets(timeout_seconds=10)
             
-            # 最後のバッファ分を返す（ScrapingSessionで正確な統計は取得される）
-            return self.collected_tweets.copy()
+            new_tweets = [t for t in self.collected_tweets 
+                         if t.get("id_str") not in self.known_tweet_ids]
+            
+            if new_tweets:
+                self.logger.info(f"@{username} の新規ツイートを検知: {len(new_tweets)}件")
+                await self._save_chunk()  # 即座に保存
+            else:
+                self.logger.info(f"@{username} の新規ツイートはありません")
+            
+            return new_tweets
             
         except Exception as e:
-            self.logger.error(f"タイムラインスクレイピングエラー: {e}")
+            self.logger.error(f"新規ツイート検知エラー: {e}")
             return []
     
-    async def _infinite_scroll(self, max_tweets: int):
-        """無限スクロールの実装（エラー耐性・段階保存付き）"""
-        scroll_attempts = 0
-        last_height = 0
-        no_new_content_count = 0
-        consecutive_errors = 0
-        max_errors = 3
-        
-        self.logger.info(f"無限スクロール開始: 目標{max_tweets}件")
-        
-        while (self.total_saved + len(self.collected_tweets) < max_tweets and 
-               scroll_attempts < settings.scraping.max_scroll_attempts and
-               consecutive_errors < max_errors):
+    async def _load_known_tweet_ids(self, username: str):
+        """データベースから既知のツイートIDを読み込み"""
+        try:
+            from src.utils.data_manager import mongodb_manager
+            tweets_collection = mongodb_manager.db["tweets"]
             
-            try:
-                scroll_attempts += 1
-                self.logger.debug(f"スクロール試行 #{scroll_attempts}")
-                
-                # 現在のページ高さを取得
-                current_height = await self.page.evaluate("document.body.scrollHeight")
-                self.logger.debug(f"現在のページ高さ: {current_height}px")
-                
-                # 下部までスクロール
-                await self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                await self._random_delay(1, 2)  # 基本遅延
-                
-                # ネットワーク待機（タイムアウト短縮）
-                try:
-                    await self.page.wait_for_load_state("networkidle", timeout=5000)
-                    self.logger.debug("ネットワークアイドル状態検出")
-                except:
-                    # タイムアウトの場合は通常の遅延
-                    await self._random_delay(
-                        settings.scraping.scroll_delay_min,
-                        settings.scraping.scroll_delay_max
-                    )
-                    self.logger.debug("ネットワーク待機タイムアウト、通常遅延実行")
-                
-                # 新しいコンテンツが読み込まれたかチェック
-                new_height = await self.page.evaluate("document.body.scrollHeight")
-                self.logger.debug(f"スクロール後の高さ: {new_height}px")
-                
-                if new_height == current_height:
-                    no_new_content_count += 1
-                    self.logger.debug(f"高さ変化なし (連続{no_new_content_count}回)")
-                    if no_new_content_count >= 3:
-                        self.logger.info("新しいコンテンツが見つからないため、スクロールを終了")
-                        break
-                else:
-                    no_new_content_count = 0
-                    self.logger.debug("ページ高さ増加、新しいコンテンツ検出")
-                
-                # エラーカウンターリセット
-                consecutive_errors = 0
-                
-                # 進捗表示（5回毎）
-                if scroll_attempts % 5 == 0:
-                    current_total = self.total_saved + len(self.collected_tweets)
-                    progress_msg = f"スクロール{scroll_attempts}回 - バッファ{len(self.collected_tweets)}件, 保存済み{self.total_saved}件"
-                    self.logger.info(f"スクロール進捗: {scroll_attempts}回, 現在バッファ: {len(self.collected_tweets)}件, 累計: {current_total}件")
-                    self._log_to_job(progress_msg)
-                    print(f"[進捗] {progress_msg}")
-                
-            except Exception as e:
-                consecutive_errors += 1
-                self.logger.error(f"スクロールエラー (連続{consecutive_errors}/{max_errors}): {e}")
-                
-                if consecutive_errors < max_errors:
-                    self.logger.info("エラーからリトライします...")
-                    await self._random_delay(3, 5)  # エラー後は長めの待機
-                else:
-                    self.logger.error("連続エラー上限に達しました、スクロールを中断")
-                    break
+            # 対象ユーザーの既存ツイートIDを取得
+            cursor = tweets_collection.find(
+                {"user.screen_name": username},
+                {"id_str": 1, "_id": 0}
+            )
+            
+            self.known_tweet_ids = {doc["id_str"] async for doc in cursor}
+            self.logger.info(f"@{username} の既知ツイートID: {len(self.known_tweet_ids)}件")
+            
+        except Exception as e:
+            self.logger.error(f"既知ツイートID読み込みエラー: {e}")
+            self.known_tweet_ids = set()
+    
+    async def _detect_new_tweets(self, timeout_seconds: int = 10):
+        """新規ツイートを検知するまで短時間待機"""
+        start_time = time.time()
+        initial_count = len(self.collected_tweets)
         
-        # 最終チャンク保存
-        if self.collected_tweets:
-            self.logger.info("最終チャンクを保存します")
-            await self._save_chunk()
-        
-        self.logger.info(f"スクロール完了: 総スクロール{scroll_attempts}回, 総保存数: {self.total_saved}件 (チャンク{self.save_counter}回)")
+        while (time.time() - start_time) < timeout_seconds:
+            await asyncio.sleep(0.5)  # 短いポーリング間隔
+            
+            # 新しいツイートが検知されたか確認
+            current_count = len(self.collected_tweets)
+            if current_count > initial_count:
+                self.logger.debug(f"新規ツイート検知: +{current_count - initial_count}件")
+                await asyncio.sleep(1)  # 少し待ってから完了
+                break
+                
+        self.logger.info(f"ツイート検知完了: {len(self.collected_tweets)}件")
     
     async def _save_chunk(self):
         """チャンク単位でのデータ保存"""
@@ -404,7 +450,9 @@ class TwitterScraper:
         try:
             self.save_counter += 1
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"tweets_{self.account.username}_{timestamp}_chunk{self.save_counter:03d}.jsonl"
+            # ターゲットユーザー名を使用（フォールバックとしてスクレイパーアカウント名）
+            target_name = self.current_target_user or self.account.username
+            filename = f"tweets_{target_name}_{timestamp}_chunk{self.save_counter:03d}.jsonl"
             
             filepath = Path(settings.raw_data_dir) / filename
             filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -525,16 +573,16 @@ class ScrapingSession:
                 
                 self.logger.info(f"アカウント @{account.username} のログインに成功しました")
                 
-                # 各ターゲットユーザーをスクレイピング
+                # 各ターゲットユーザーの新規ツイートを検知
                 for username in target_users:
                     try:
-                        self.logger.info(f"ユーザー @{username} のタイムラインを取得中...")
-                        tweets = await scraper.scrape_user_timeline(username)
-                        tweet_results[username] = tweets
+                        self.logger.info(f"ユーザー @{username} の新規ツイートを検知中...")
+                        new_tweets = await scraper.sync_user_tweets(username)
+                        tweet_results[username] = new_tweets
                         
-                        # 正確な統計情報を収集
-                        buffer_count = len(tweets)
-                        total_saved = scraper.total_saved + buffer_count  # バッファ分も含めて最終保存予定
+                        # 正確な統計情報を収集  
+                        new_count = len(new_tweets)
+                        total_saved = scraper.total_saved + new_count
                         chunks_created = scraper.save_counter
                         
                         # セッション統計を更新
