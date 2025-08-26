@@ -192,7 +192,7 @@ class JobService:
             if final_logs:
                 update_operation["$push"]["logs"] = {"$each": final_logs}
 
-            result = self.collection.update_one({"jo b_id": job_id}, update_operation)
+            result = self.collection.update_one({"job_id": job_id}, update_operation)
 
             if result.matched_count > 0:
                 self.logger.info(f"ジョブを完了: {job_id}")
