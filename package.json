@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "private": true,
-  "workspaces": [
-    "frontend"
-  ],
   "scripts": {
     "dev:frontend": "pnpm run sync-env && cd frontend && pnpm run dev",
     "dev": "docker-compose up",

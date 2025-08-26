@@ -210,9 +210,18 @@ class MediaProcessor:
             if all_media:
                 # ツイートにdownloaded_mediaフィールドを追加
                 tweet["downloaded_media"] = all_media
-                self.logger.info(
-                    f"ツイート {tweet.get('id_str', 'unknown')} のメディア処理完了: {len(all_media)}件（順番保持）"
-                )
+
+                # ツイートIDを取得（デバッグ情報付き）
+                tweet_id = tweet.get("id_str")
+                if not tweet_id:
+                    tweet_id = tweet.get("rest_id")
+                    if not tweet_id:
+                        tweet_id = tweet.get("id")
+                        if not tweet_id:
+                            self.logger.warning(f"ツイートIDが見つかりません。利用可能キー: {list(tweet.keys())}")
+                            tweet_id = "unknown"
+
+                self.logger.info(f"ツイート {tweet_id} のメディア処理完了: {len(all_media)}件（順番保持）")
 
         except Exception as e:
             self.logger.error(f"ツイートメディア処理エラー: {e}")

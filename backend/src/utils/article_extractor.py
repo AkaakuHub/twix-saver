@@ -202,7 +202,27 @@ class ArticleExtractor:
             }
 
             # メタデータの抽出
-            self._extract_metadata(response.content.decode(response.encoding or "utf-8"), article)
+            try:
+                # エンコーディングを安全に取得
+                encoding = response.encoding or "utf-8"
+                if (
+                    encoding.lower() in ["iso-8859-1", "windows-1252"]
+                    and "charset=" not in response.headers.get("content-type", "").lower()
+                ):
+                    # デフォルトエンコーディングが設定されている場合はutf-8を試す
+                    encoding = "utf-8"
+
+                html_content = response.content.decode(encoding, errors="replace")
+                self._extract_metadata(html_content, article)
+            except (UnicodeDecodeError, LookupError) as e:
+                self.logger.warning(f"エンコーディングエラー ({url}): {e}, fallback to utf-8")
+                try:
+                    html_content = response.content.decode("utf-8", errors="replace")
+                    self._extract_metadata(html_content, article)
+                except Exception:
+                    self.logger.warning(f"メタデータ抽出をスキップ: {url}")
+            except Exception as e:
+                self.logger.warning(f"メタデータ抽出エラー ({url}): {e}")
 
             return article
 
@@ -280,6 +300,9 @@ class ArticleExtractor:
     def _extract_metadata(self, html_content: str, article: dict):
         """HTMLからメタデータを抽出"""
         try:
+            # 型チェック：bytesオブジェクトの場合はデコード
+            if isinstance(html_content, bytes):
+                html_content = html_content.decode("utf-8", errors="replace")
             # 基本的なメタタグの抽出
             meta_patterns = {
                 "description": [

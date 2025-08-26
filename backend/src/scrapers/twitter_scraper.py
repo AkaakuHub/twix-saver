@@ -667,8 +667,7 @@ class ScrapingSession:
                         tweet_results[username] = new_tweets
 
                         # 正確な統計情報を収集
-                        new_count = len(new_tweets)
-                        total_saved = scraper.total_saved + new_count
+                        total_saved = scraper.total_saved  # 既にsave_chunkで累積済み
                         chunks_created = scraper.save_counter
 
                         # セッション統計を更新
