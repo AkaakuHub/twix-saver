@@ -31,9 +31,8 @@ export const useJobs = () => {
         throw error
       }
     },
-    staleTime: 0, // リアルタイム更新のため常に最新データを取得
-    refetchInterval: 3000, // 3秒間隔で自動更新（ジョブステータス変更を反映）
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true, // フォーカス時に更新
+    refetchOnMount: true, // マウント時に更新
   })
 
   const createJobMutation = useMutation({
@@ -51,6 +50,7 @@ export const useJobs = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.refetchQueries({ queryKey: ['jobs'] })
       addNotification({
         type: 'success',
         title: 'スクレイピングジョブを作成しました',
@@ -76,6 +76,7 @@ export const useJobs = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.refetchQueries({ queryKey: ['jobs'] })
       queryClient.invalidateQueries({ queryKey: ['active-jobs'] })
       addNotification({
         type: 'info',
@@ -102,7 +103,12 @@ export const useJobs = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.refetchQueries({ queryKey: ['jobs'] })
       queryClient.invalidateQueries({ queryKey: ['active-jobs'] })
+      // 追加の確実な更新
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['jobs'] })
+      }, 100)
       addNotification({
         type: 'success',
         title: 'ジョブを開始しました',
@@ -128,6 +134,7 @@ export const useJobs = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.refetchQueries({ queryKey: ['jobs'] })
       queryClient.invalidateQueries({ queryKey: ['active-jobs'] })
       addNotification({
         type: 'info',
@@ -169,6 +176,7 @@ export const useJobs = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.refetchQueries({ queryKey: ['jobs'] })
       queryClient.invalidateQueries({ queryKey: ['active-jobs'] })
       addNotification({
         type: 'success',
@@ -196,6 +204,7 @@ export const useJobs = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.refetchQueries({ queryKey: ['jobs'] })
       queryClient.invalidateQueries({ queryKey: ['active-jobs'] })
       addNotification({
         type: 'success',
@@ -252,8 +261,8 @@ export const useActiveJobs = () => {
         throw error
       }
     },
-    staleTime: Infinity, // 手動更新のみ
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true, // フォーカス時に更新
+    refetchOnMount: true, // マウント時に更新
   })
 }
 
@@ -276,8 +285,8 @@ export const useJobStats = () => {
         throw error
       }
     },
-    staleTime: Infinity, // 手動更新のみ
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true, // フォーカス時に更新
+    refetchOnMount: true, // マウント時に更新
   })
 }
 
@@ -302,9 +311,8 @@ export const useJobLogs = (jobId: string, lastTimestamp?: string) => {
       }
     },
     enabled: !!jobId,
-    staleTime: 0, // リアルタイム更新のため常に最新データを取得
-    refetchInterval: 2000, // 2秒間隔で自動更新
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true, // フォーカス時に更新
+    refetchOnMount: true, // マウント時に更新
   })
 }
 
@@ -328,8 +336,7 @@ export const useJobDetail = (jobId: string) => {
       }
     },
     enabled: !!jobId,
-    staleTime: 0, // リアルタイム更新のため常に最新データを取得
-    refetchInterval: 2000, // 2秒間隔で自動更新（実行中の場合）
+
     refetchOnWindowFocus: false,
   })
 }

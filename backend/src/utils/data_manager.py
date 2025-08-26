@@ -218,23 +218,27 @@ class MongoDBManager:
                 if "downloaded_media" in normalized_tweet:
                     downloaded_media = normalized_tweet.pop("downloaded_media")
 
-                    # デバッグログ: メディア処理結果を記録
-                    media_types = {}
-                    for media in downloaded_media:
-                        media_type = media.get("type", "unknown")
-                        media_types[media_type] = media_types.get(media_type, 0) + 1
+                    # 実際に画像処理が実行された場合のみログ出力
+                    if normalized_tweet.get("_image_processing_executed", False) and downloaded_media:
+                        # デバッグログ: メディア処理結果を記録
+                        media_types = {}
+                        for media in downloaded_media:
+                            media_type = media.get("type", "unknown")
+                            media_types[media_type] = media_types.get(media_type, 0) + 1
 
-                    if downloaded_media:
                         self.logger.info(f"ツイート {tweet_id} のメディア保存: {media_types}")
 
                     # normalized_tweetにdownloaded_mediaを再追加
                     normalized_tweet["downloaded_media"] = downloaded_media
 
+                    # 一時的なフラグは削除してからDB保存
+                    normalized_tweet.pop("_image_processing_executed", None)
                     update_doc = {"$set": normalized_tweet}
 
                     operations.append(UpdateOne(filter_query, update_doc, upsert=True))
                 else:
-                    # 通常のツイートデータは既存の処理
+                    # 通常のツイートデータは既存の処理（一時フラグを削除）
+                    normalized_tweet.pop("_image_processing_executed", None)
                     operations.append(UpdateOne(filter_query, {"$set": normalized_tweet}, upsert=True))
 
             if operations:
@@ -422,6 +426,9 @@ class DataIngestService:
             # ツイートのバッチ処理（画像処理含む）を実行
             if tweets:
                 self.logger.info(f"ツイートのバッチ処理を開始: {len(tweets)}件")
+
+                # 既存ツイートの画像処理状態を取得してマージ
+                tweets = self._merge_existing_tweet_states(tweets)
                 processed_count, success_count, failed_count = await batch_processor.process_tweets_with_images_batch(
                     tweets, self.mongodb
                 )
@@ -473,6 +480,61 @@ class DataIngestService:
         """記事データかどうかを判定"""
         article_indicators = ["url", "cleaned_text", "title"]
         return "url" in item and any(key in item for key in article_indicators)
+
+    def _merge_existing_tweet_states(self, tweets: list[dict]) -> list[dict]:
+        """JSONLから読み込んだツイートと既存DB上の画像処理状態をマージ"""
+        if not self.mongodb.is_connected or not tweets:
+            return tweets
+
+        merged_tweets = []
+
+        for tweet in tweets:
+            # ツイートIDを取得
+            tweet_id = tweet.get("id_str") or tweet.get("rest_id") or tweet.get("id")
+            if not tweet_id:
+                merged_tweets.append(tweet)
+                continue
+
+            # DBから既存のツイートを検索
+            filter_query = {"$or": [{"id_str": tweet_id}, {"rest_id": tweet_id}]}
+            existing_tweet = self.mongodb.tweets_collection.find_one(
+                filter_query,
+                # 画像処理状態関連フィールドのみ取得
+                {
+                    "image_processing_status": 1,
+                    "image_processing_attempted_at": 1,
+                    "image_processing_completed_at": 1,
+                    "image_processing_retry_count": 1,
+                    "image_processing_error": 1,
+                    "image_processing_media_count": 1,
+                    "image_processing_success_count": 1,
+                    "downloaded_media": 1,
+                },
+            )
+
+            # 既存の画像処理状態が存在する場合、それをマージ
+            if existing_tweet:
+                status = existing_tweet.get("image_processing_status")
+                self.logger.info(f"ツイート {tweet_id} の既存状態をマージ: {status}")
+                for key in [
+                    "image_processing_status",
+                    "image_processing_attempted_at",
+                    "image_processing_completed_at",
+                    "image_processing_retry_count",
+                    "image_processing_error",
+                    "image_processing_media_count",
+                    "image_processing_success_count",
+                    "downloaded_media",
+                ]:
+                    if key in existing_tweet:
+                        tweet[key] = existing_tweet[key]
+            else:
+                self.logger.info(f"ツイート {tweet_id} は新規ツイート")
+
+            merged_tweets.append(tweet)
+
+        self.logger.debug(f"既存ツイート状態のマージ完了: {len(tweets)}件")
+        return merged_tweets
 
     def _delete_processed_files(self, files: list[Path]):
         """DB挿入成功したファイルを削除"""

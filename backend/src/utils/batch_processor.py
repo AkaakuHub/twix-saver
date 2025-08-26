@@ -56,16 +56,27 @@ class BatchProcessor:
                 if processed_tweets:
                     inserted_count = db_manager.insert_tweets(processed_tweets)
 
-                    # 統計更新
+                    # 統計更新（実際に画像処理が実行されたもののみカウント）
                     success_count = sum(
                         1
                         for t in processed_tweets
-                        if t.get("image_processing_status") == ImageProcessingStatus.COMPLETED.value
+                        if (
+                            t.get("image_processing_status") == ImageProcessingStatus.COMPLETED.value
+                            and t.get("_image_processing_executed", False)
+                        )
                     )
                     failed_count = sum(
                         1
                         for t in processed_tweets
                         if t.get("image_processing_status") == ImageProcessingStatus.FAILED.value
+                    )
+                    skipped_count = sum(
+                        1
+                        for t in processed_tweets
+                        if (
+                            t.get("image_processing_status") == ImageProcessingStatus.COMPLETED.value
+                            and not t.get("_image_processing_executed", False)
+                        )
                     )
 
                     total_processed += len(processed_tweets)
@@ -74,7 +85,7 @@ class BatchProcessor:
 
                     self.logger.info(
                         f"バッチ {batch_idx} 完了: {inserted_count}件DB挿入, "
-                        f"画像処理成功: {success_count}件, 失敗: {failed_count}件"
+                        f"画像処理成功: {success_count}件, 失敗: {failed_count}件, スキップ: {skipped_count}件"
                     )
 
                 # バッチ間の小休止（負荷軽減）
@@ -123,6 +134,15 @@ class BatchProcessor:
             if "image_processing_status" not in tweet:
                 tweet.update(ImageProcessingState.create_initial_state())
 
+            # 既に処理済みかチェック
+            status = tweet.get("image_processing_status", "なし")
+            tweet_id = tweet.get("id_str") or tweet.get("rest_id") or tweet.get("id") or "unknown"
+            if not ImageProcessingState.is_processing_needed(tweet):
+                # 処理不要の場合はそのまま返す（実行フラグはFalse）
+                self.logger.info(f"ツイート {tweet_id} は処理済みのためスキップ (状態: {status})")
+                tweet["_image_processing_executed"] = False
+                return tweet
+
             # 処理中状態に更新
             tweet = ImageProcessingState.mark_as_processing(tweet)
 
@@ -142,14 +162,18 @@ class BatchProcessor:
                     processed_tweet, new_media_count, new_media_count
                 )
 
+            # 実行フラグを設定
+            processed_tweet["_image_processing_executed"] = True
             return processed_tweet
 
         except Exception as e:
             error_msg = f"画像処理エラー: {str(e)}"
-            self.logger.warning(f"ツイート {tweet.get('id_str', 'unknown')} の{error_msg}")
+            tweet_id = tweet.get("id_str") or tweet.get("rest_id") or tweet.get("id") or "unknown"
+            self.logger.warning(f"ツイート {tweet_id} の{error_msg}")
 
             # 失敗状態に更新
             tweet = ImageProcessingState.mark_as_failed(tweet, error_msg)
+            tweet["_image_processing_executed"] = True  # 失敗も実行扱い
             return tweet
 
     async def retry_failed_image_processing(self, db_manager, max_tweets: int = 100) -> tuple[int, int]:
