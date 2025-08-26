@@ -4,7 +4,7 @@ import type { ScrapingJobResponse, ScrapingJobCreate } from '../types/api'
 
 import { API_BASE } from '../config/env'
 
-export const useJobs = () => {
+export const useJobs = (enablePolling = false) => {
   const { addNotification } = useAppStore()
   const queryClient = useQueryClient()
 
@@ -31,8 +31,9 @@ export const useJobs = () => {
         throw error
       }
     },
-    refetchOnWindowFocus: true, // フォーカス時に更新
-    refetchOnMount: true, // マウント時に更新
+    staleTime: 0,
+    refetchInterval: enablePolling ? 3000 : false, // 条件付きポーリング
+    refetchOnWindowFocus: false,
   })
 
   const createJobMutation = useMutation({

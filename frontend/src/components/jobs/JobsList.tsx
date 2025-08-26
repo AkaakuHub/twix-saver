@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card'
 import { formatJobDateTime } from '../../utils/dateFormat'
 import { Badge } from '../ui/Badge'
@@ -19,6 +19,11 @@ import {
 } from '@heroicons/react/24/outline'
 
 export const JobsList = () => {
+  const [forcePolling, setForcePolling] = useState(false)
+  const [hasActiveJobs, setHasActiveJobs] = useState(false)
+
+  const shouldPoll = hasActiveJobs || forcePolling
+
   const {
     jobs,
     isLoading,
@@ -32,7 +37,32 @@ export const JobsList = () => {
     isStarting,
     isStopping,
     isRunning,
-  } = useJobs()
+  } = useJobs(shouldPoll)
+
+  // ジョブリストが更新されたら実行中ジョブの有無をチェック
+  useEffect(() => {
+    const activeJobs = jobs.filter(job =>
+      ['running', 'processing'].includes(job.status.toLowerCase())
+    )
+    const hasActive = activeJobs.length > 0
+    setHasActiveJobs(hasActive)
+
+    // 実行中ジョブがなくなったら強制ポーリングを停止
+    if (!hasActive && forcePolling) {
+      setTimeout(() => setForcePolling(false), 5000) // 5秒後に停止
+    }
+  }, [jobs, forcePolling])
+
+  // ジョブアクション時に一時的にポーリングを有効化
+  const handleStartJob = (jobId: string) => {
+    setForcePolling(true)
+    startJob(jobId)
+  }
+
+  const handleRunJob = (jobId: string) => {
+    setForcePolling(true)
+    runJob(jobId)
+  }
 
   const [isJobModalOpen, setIsJobModalOpen] = useState(false)
   const [selectedJob, setSelectedJob] = useState<ScrapingJobResponse | null>(null)
@@ -140,7 +170,7 @@ export const JobsList = () => {
                         variant="outline"
                         size="sm"
                         icon={<BoltIcon className="w-4 h-4" />}
-                        onClick={() => runJob(job.job_id)}
+                        onClick={() => handleRunJob(job.job_id)}
                         loading={isRunning}
                         disabled={isRunning}
                         title="即座に実行"
@@ -155,7 +185,7 @@ export const JobsList = () => {
                         variant="outline"
                         size="sm"
                         icon={<PlayIcon className="w-4 h-4" />}
-                        onClick={() => startJob(job.job_id)}
+                        onClick={() => handleStartJob(job.job_id)}
                         loading={isStarting}
                         disabled={isStarting || isStopping}
                       >
